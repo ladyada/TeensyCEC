@@ -281,5 +281,3 @@ void nes_Start(char * filename)
 		}  
 	}
 }
-
-

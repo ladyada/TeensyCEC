@@ -13,37 +13,41 @@ extern "C" {
 #include "nes_emu.h"
 }
 
-#include <uVGA.h>
-uVGA uvga;
-#if F_CPU == 144000000
-#define UVGA_144M_326X240
-#define UVGA_XRES 326
-#define UVGA_YRES 240
-#define UVGA_XRES_EXTRA 10
-#elif  F_CPU == 180000000
-#define UVGA_180M_360X300
-#define UVGA_XRES 360
-#define UVGA_YRES 300
-#define UVGA_XRES_EXTRA 8 
-#elif  F_CPU == 240000000
-#define UVGA_240M_452X240
-#define UVGA_XRES 452
-#define UVGA_YRES 240
-#define UVGA_XRES_EXTRA 12 
-#else
-#error Please select F_CPU=240MHz or F_CPU=180MHz or F_CPU=144MHz
-#endif
+#ifdef UVGA_SUPPORT
+  #include <uVGA.h>
+  uVGA uvga;
+  #if F_CPU == 144000000
+  #define UVGA_144M_326X240
+  #define UVGA_XRES 326
+  #define UVGA_YRES 240
+  #define UVGA_XRES_EXTRA 10
+  #elif  F_CPU == 180000000
+  #define UVGA_180M_360X300
+  #define UVGA_XRES 360
+  #define UVGA_YRES 300
+  #define UVGA_XRES_EXTRA 8 
+  #elif  F_CPU == 240000000
+  #define UVGA_240M_452X240
+  #define UVGA_XRES 452
+  #define UVGA_YRES 240
+  #define UVGA_XRES_EXTRA 12 
+  #else
+  #error Please select F_CPU=240MHz or F_CPU=180MHz or F_CPU=144MHz
+  #endif
 
-#include <uVGA_valid_settings.h>
+  #include <uVGA_valid_settings.h>
+#endif
 
 bool vgaMode = false;
-#ifdef DMA_FULL
-uint8_t * VGA_frame_buffer;
-#else
-UVGA_STATIC_FRAME_BUFFER(uvga_fb);
-uint8_t * VGA_frame_buffer = uvga_fb;
-#endif
 
+#ifdef UVGA_SUPPORT
+  #ifdef DMA_FULL
+  uint8_t * VGA_frame_buffer;
+  #else
+  UVGA_STATIC_FRAME_BUFFER(uvga_fb);
+  uint8_t * VGA_frame_buffer = uvga_fb;
+  #endif
+#endif
 
 ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO, TFT_TOUCH_CS, TFT_TOUCH_INT);
 static unsigned char  palette8[PALETTE_SIZE];
@@ -82,6 +86,7 @@ static void main_step() {
   if (menuActive()) {
     int action = handleMenu(bClick);
     char * filename = menuSelection();
+
     if (action == ACTION_RUNTFT) {
       tft.setFrameBuffer((uint16_t *)malloc((ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH)*sizeof(uint16_t)));     
       Serial.print("TFT init: ");  
@@ -92,6 +97,7 @@ static void main_step() {
       tft.refresh();
       emu_Init(filename);
     }
+#ifdef UVGA_SUPPORT
     else if (action == ACTION_RUNVGA) {
       toggleMenu(false);
       vgaMode = true;
@@ -108,7 +114,8 @@ static void main_step() {
       // In VGA mode, we show the keyboard on TFT
       toggleVirtualkeyboard(true); // keepOn
       Serial.println("Starting");              
-    }         
+    }
+#endif     
     delay(20);
   }
   else if (callibrationActive()) {
@@ -192,6 +199,8 @@ void emu_DrawLine(unsigned char * VBuf, int width, int height, int line)
   if (!vgaMode) {
     tft.writeLine(width,1,line, VBuf, palette16);
   }
+
+#ifdef UVGA_SUPPORT
   else {
     int fb_width=UVGA_XRES,fb_height=UVGA_YRES;
     fb_width += UVGA_XRES_EXTRA;
@@ -204,6 +213,7 @@ void emu_DrawLine(unsigned char * VBuf, int width, int height, int line)
         *dst++=pixel;
     }
   }
+#endif
 }  
 
 void emu_DrawScreen(unsigned char * VBuf, int width, int height, int stride) 
@@ -213,6 +223,8 @@ void emu_DrawScreen(unsigned char * VBuf, int width, int height, int stride)
       tft.writeScreen(width,height-TFT_VBUFFER_YCROP,stride, VBuf+(TFT_VBUFFER_YCROP/2)*stride, palette16);
     }
   }
+
+#ifdef UVGA_SUPPORT
   else {
     int fb_width=UVGA_XRES, fb_height=UVGA_YRES;
     //uvga.get_frame_buffer_size(&fb_width, &fb_height);
@@ -233,6 +245,7 @@ void emu_DrawScreen(unsigned char * VBuf, int width, int height, int stride)
       VBuf += (stride-width);
     }             
   }
+#endif
 }
 
 int emu_FrameSkip(void)
@@ -285,10 +298,3 @@ void emu_sndPlayBuzz(int size, int val) {
 }
 
 #endif
-
-
-
-
-
-
-

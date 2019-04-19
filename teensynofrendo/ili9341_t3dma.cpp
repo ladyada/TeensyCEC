@@ -5,7 +5,7 @@
 #include "ili9341_t3dma.h"
 #include "font8x8.h"
 
-#define SPICLOCK 144e6 //Just a number..max speed
+#define SPICLOCK 16000000 //Just a number..max speed
 
 // touch
 #define SPI_SETTING         SPISettings(2500000, MSBFIRST, SPI_MODE0)
@@ -880,6 +880,3 @@ inline uint16_t ILI9341_t3DMA::getPixel(int16_t x, int16_t y) {
   return 0;
 #endif  
 }
-
-
-
