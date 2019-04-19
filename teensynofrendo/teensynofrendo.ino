@@ -5,9 +5,11 @@ extern "C" {
 
 
 #include "keyboard_osd.h"
+
+#ifdef TEENSYDUINO
 #include "ili9341_t3dma.h"
 #include <elapsedMillis.h>
-
+#endif
 
 extern "C" {
 #include "nes_emu.h"
@@ -49,7 +51,12 @@ bool vgaMode = false;
   #endif
 #endif
 
+#ifdef TOUCHSCREEN_SUPPORT
 ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO, TFT_TOUCH_CS, TFT_TOUCH_INT);
+#else
+ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
+#endif
+
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
 static IntervalTimer myTimer;
@@ -118,11 +125,15 @@ static void main_step() {
 #endif     
     delay(20);
   }
+#ifdef TOUCHSCREEN_SUPPORT
   else if (callibrationActive()) {
     handleCallibration(bClick);
   } 
+#endif
   else {
+#ifdef TOUCHSCREEN_SUPPORT
     handleVirtualkeyboard();
+#endif
     if ( (!virtualkeyboardIsActive()) || (vgaMode) ) {     
       emu_Step();
     }

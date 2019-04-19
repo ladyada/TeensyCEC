@@ -24,6 +24,7 @@
 */
 
 #include <string.h>
+#include <stdlib.h>
 #include "noftypes.h"
 #include "nes6502.h"
 #include "nes_mmc.h"

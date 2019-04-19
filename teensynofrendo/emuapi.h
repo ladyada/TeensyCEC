@@ -10,6 +10,7 @@
 
 // Include uVGA output support?
 //#define UVGA_SUPPORT
+//#define TOUCHSCREEN_SUPPORT
 
 // Title:     <                                        >
 #define TITLE "               NES Emulator             "

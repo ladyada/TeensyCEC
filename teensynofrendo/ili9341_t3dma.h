@@ -2,6 +2,8 @@
   Copyright Frank Bösing, 2017
 */
 
+#ifdef TEENSYDUINO
+
 #ifndef _ILI9341_T3DMAH_
 #define _ILI9341_T3DMAH_
 
@@ -146,6 +148,6 @@ class ILI9341_t3DMA
 	  void enableTouchIrq();
 };
 
-#endif
-#endif
-
+#endif // C++
+#endif // Header guard
+#endif // teensy

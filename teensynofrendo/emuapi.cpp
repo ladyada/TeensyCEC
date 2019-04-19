@@ -62,6 +62,7 @@ static bool i2cKeyboardPresent = false;
 #define MKEY_TFT            23
 #define MKEY_VGA            24
 
+#ifdef TOUCHSCREEN_SUPPORT
 const unsigned short menutouchareas[] = {
   TAREA_XY,MENU_FILE_XOFFSET,MENU_FILE_YOFFSET,
   TAREA_WH,MENU_FILE_W, TEXT_HEIGHT,
@@ -76,13 +77,13 @@ const unsigned short menutouchareas[] = {
   TAREA_NEW_COL, 38,38,
     
   TAREA_END};
+#endif
    
 const unsigned short menutouchactions[] = {
   MKEY_L1,MKEY_L2,MKEY_L3,MKEY_L4,MKEY_L5,MKEY_L6,MKEY_L7,MKEY_L8,MKEY_L9,
   MKEY_UP,MKEY_DOWN,ACTION_NONE,MKEY_JOY,
   MKEY_TFT,MKEY_VGA}; 
 
-  
 static bool menuOn=true;
 static bool callibrationOn=false;
 static int callibrationStep=0;
@@ -119,6 +120,7 @@ static int readNbFiles(void) {
   return totalFiles;  
 }
 
+#ifdef TOUCHSCREEN_SUPPORT
 static char captureTouchZone(const unsigned short * areas, const unsigned short * actions, int *rx, int *ry, int *rw, int * rh) {
     uint16_t xt=0;
     uint16_t yt=0;
@@ -190,6 +192,7 @@ static char captureTouchZone(const unsigned short * areas, const unsigned short 
   
     return ACTION_NONE;   
 } 
+#endif
 
 void toggleMenu(bool on) {
   if (on) {
@@ -356,7 +359,11 @@ int handleMenu(uint16_t bClick)
   File entry = sd.open(newpath);
 
   int rx=0,ry=0,rw=0,rh=0;
+#ifdef TOUCHSCREEN_SUPPORT
   char c = captureTouchZone(menutouchareas, menutouchactions, &rx,&ry,&rw,&rh);
+#else
+  char c = 255;
+#endif
   if ( ( (bClick & MASK_JOY2_BTN) || (bClick & MASK_KEY_USER1) )  && (entry.isDirectory()) ) {
       menuRedraw=true;
       strcpy(romspath,newpath);
@@ -516,7 +523,7 @@ void emu_init(void)
 }
 
 
-void emu_printf(char * text)
+void emu_printf(const char * text)
 {
   Serial.println(text);
 }
@@ -871,6 +878,7 @@ bool virtualkeyboardIsActive(void) {
     return (vkbActive);
 }
 
+#ifdef TOUCHSCREEN_SUPPORT
 void toggleVirtualkeyboard(bool keepOn) {     
     if (keepOn) {      
         tft.drawSpriteNoDma(0,0,(uint16_t*)logo);
@@ -905,7 +913,7 @@ void toggleVirtualkeyboard(bool keepOn) {
     }   
 }
 
- 
+
 void handleVirtualkeyboard() {
   int rx=0,ry=0,rw=0,rh=0;
 
@@ -950,6 +958,6 @@ void handleVirtualkeyboard() {
         else {         
             toggleVirtualkeyboard(true);           
         } 
-    }
-          
+    }         
 }
+#endif
