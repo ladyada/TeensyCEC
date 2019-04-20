@@ -5,7 +5,13 @@ extern "C" {
   #include "iopins.h"  
 }
 
-#include "ili9341_t3dma.h"
+#if defined(TEENSYDUINO)
+  #include "ili9341_t3dma.h"
+#elif defined(__SAMD51__)
+  #include "ili9341_samd51.h"
+#endif
+
+
 #include "logo.h"
 #include "bmpjoy.h"
 #include "bmpvbar.h"
@@ -17,7 +23,11 @@ extern "C" {
 #endif
 
 extern ILI9341_t3DMA tft;
-static SdFatSdio sd;
+#ifdef TEENSYDUINO
+  static SdFatSdio sd;
+#else
+  static SdFat sd;
+#endif
 static File file;
 static char romspath[64];
 static int16_t calMinX=-1,calMinY=-1,calMaxX=-1,calMaxY=-1;

@@ -2,26 +2,12 @@
   Copyright Frank Bösing, 2017
 */
 
-
-#if defined(TEENSYDUINO)
-#include "ili9341_t3dma.h"
+#if defined(__SAMD51__)
+#include "ili9341_samd51.h"
 #include "font8x8.h"
 
-#define SPICLOCK 144e6 //Just a number..max speed
+#define SPICLOCK 8000000
 
-// touch
-#define SPI_SETTING         SPISettings(2500000, MSBFIRST, SPI_MODE0)
-#define XPT2046_CFG_START   (1 << 7)
-#define XPT2046_CFG_MUX(v)  ((v&0b111) << (4))
-#define XPT2046_CFG_8BIT    (1 << 3)
-#define XPT2046_CFG_12BIT   (0)
-#define XPT2046_CFG_SER     (1 << 2)
-#define XPT2046_CFG_DFR     (0)
-#define XPT2046_CFG_PWR(v)  ((v&0b11))
-#define XPT2046_MUX_Y       0b101
-#define XPT2046_MUX_X       0b001
-#define XPT2046_MUX_Z1      0b011
-#define XPT2046_MUX_Z2      0b100
 
 #ifdef DMA_FULL
 //static DMAMEM uint16_t dmascreen[ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH+ILI9341_VIDEOMEMSPARE];
@@ -30,12 +16,13 @@ static uint16_t * screen=NULL; //=dmascreen;
 static uint16_t * screen;
 #endif
 
+/*
 static DMASetting dmasettings[SCREEN_DMA_NUM_SETTINGS];
 static DMAChannel dmatx;
 volatile uint8_t rstop = 0;
 volatile bool cancelled = false;
 volatile uint8_t ntransfer = 0;
-
+*/
 static const uint8_t init_commands[] = {
   4, 0xEF, 0x03, 0x80, 0x02,
   4, 0xCF, 0x00, 0XC1, 0X30,
@@ -66,6 +53,7 @@ static const uint8_t init_commands[] = {
 
 
 static void dmaInterrupt() {
+/*
   dmatx.clearInterrupt();
   ntransfer++;
   if (ntransfer >= SCREEN_DMA_NUM_SETTINGS) {   
@@ -75,9 +63,11 @@ static void dmaInterrupt() {
         rstop = 1;
     }
   }
+  */
 }
 
 static void setDmaStruct() {
+  /*
   const uint32_t bytesPerLine = ILI9341_TFTWIDTH * 2;
   const uint32_t maxLines = (SCREEN_DMA_MAX_SIZE / bytesPerLine);
   uint32_t i = 0, sum = 0, lines;
@@ -111,26 +101,19 @@ static void setDmaStruct() {
   dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].replaceSettingsOnCompletion(dmasettings[0]);
   dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].interruptAtCompletion(); 
   //dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].disableOnCompletion();
+*/
 }
 
 
-ILI9341_t3DMA::ILI9341_t3DMA(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_t sclk, uint8_t miso,  uint8_t touch_cs,  uint8_t touch_irq)
+ILI9341_t3DMA::ILI9341_t3DMA(uint8_t cs, uint8_t dc, uint8_t rst)
 {
   _cs   = cs;
   _dc   = dc;
   _rst  = rst;
-  _mosi = mosi;
-  _sclk = sclk;
-  _miso = miso;
-  _touch_irq = touch_irq;
-  _touch_cs = touch_cs;
   pinMode(_dc, OUTPUT);
   pinMode(_cs, OUTPUT);
-  pinMode(_touch_cs, OUTPUT);
-  pinMode(touch_irq, INPUT_PULLUP);  
   digitalWrite(_cs, 1);
   digitalWrite(_dc, 1);
-  digitalWrite(_touch_cs, 1);
 }
 
 void ILI9341_t3DMA::setFrameBuffer(uint16_t * fb) {
@@ -167,9 +150,6 @@ void ILI9341_t3DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
 
 void ILI9341_t3DMA::begin(void) {
 
-  SPI.setMOSI(_mosi);
-  SPI.setMISO(_miso);
-  SPI.setSCK(_sclk);
   SPI.begin();
       
   // Initialize display
@@ -218,7 +198,7 @@ void ILI9341_t3DMA::begin(void) {
   digitalWrite(_dc, 1);
   digitalWrite(_cs, 1);
   SPI.endTransaction();
-
+/*
   setDmaStruct();
 
   dmatx.attachInterrupt(dmaInterrupt);
@@ -227,6 +207,7 @@ void ILI9341_t3DMA::begin(void) {
   dmatx.triggerAtHardwareEvent(DMAMUX_SOURCE_SPI0_TX );
   dmatx = dmasettings[0];
   cancelled = false; 
+  */
 #ifdef FLIP_SCREEN          
   flipscreen(true);           
 #endif            
@@ -259,6 +240,7 @@ boolean ILI9341_t3DMA::isflipped(void)
   
 
 void ILI9341_t3DMA::start(void) {
+  /*
   uint16_t centerdx = (ILI9341_TFTREALWIDTH - max_screen_width)/2;
   uint16_t centerdy = (ILI9341_TFTREALHEIGHT - max_screen_height)/2;
   setArea(centerdx, centerdy, max_screen_width+centerdx, max_screen_height+centerdy);
@@ -266,10 +248,12 @@ void ILI9341_t3DMA::start(void) {
   SPI0_MCR &= ~SPI_MCR_HALT;  //Start transfers.
   SPI0_CTAR0 = SPI0_CTAR1;
   (*(volatile uint16_t *)((int)&SPI0_PUSHR + 2)) = (SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT) >> 16; //Enable 16 Bit Transfers + Continue-Bit
+  */
 }
 
 
 void ILI9341_t3DMA::refresh(void) {
+/*
 #ifdef DMA_FULL
   if (screen != NULL) {
     setDmaStruct();
@@ -283,14 +267,17 @@ void ILI9341_t3DMA::refresh(void) {
     rstop = 0;     
   }
 #endif      
+*/
 }
 
 
 void ILI9341_t3DMA::stop(void) {
+/*
   rstop = 0;
   wait();
   delay(50);
   //dmatx.disable();
+  */
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));  
   SPI.endTransaction();
   digitalWrite(_cs, 1);
@@ -298,6 +285,7 @@ void ILI9341_t3DMA::stop(void) {
 }
 
 void ILI9341_t3DMA::wait(void) {
+/*
   rstop = 1;
   unsigned long m = millis(); 
   cancelled = true; 
@@ -307,140 +295,12 @@ void ILI9341_t3DMA::wait(void) {
     asm volatile("wfi");
   };
   rstop = 0;
+  */
 }
 
 uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
 { 
   return(&screen[j*ILI9341_TFTREALWIDTH]);
-}
-
-/***********************************************************************************************
-    Touch functions
- ***********************************************************************************************/
-/* Code based on ...
- *
- * @file XPT2046.cpp
- * @date 19.02.2016
- * @author Markus Sattler
- *
- * Copyright (c) 2015 Markus Sattler. All rights reserved.
- * This file is part of the XPT2046 driver for Arduino.
- */
-
-#define ADC_MAX                 0x0fff  
-
-void ILI9341_t3DMA::enableTouchIrq() {
-  SPI.beginTransaction(SPI_SETTING);
-  digitalWrite(_touch_cs, LOW);
-  const uint8_t buf[4] = { (XPT2046_CFG_START | XPT2046_CFG_12BIT | XPT2046_CFG_DFR | XPT2046_CFG_MUX(XPT2046_MUX_Y)), 0x00, 0x00, 0x00 };
-  SPI.transfer((void*)&buf[0],3);   
-  digitalWrite(_touch_cs, HIGH);
-  SPI.endTransaction();
-}
-
-//Default callibration for non flipped
-#define TX_MIN 30
-#define TY_MIN 20
-#define TX_MAX 300
-#define TY_MAX 220
-
-//Default callibration for flipped
-#define TFX_MIN 20
-#define TFY_MIN 25
-#define TFX_MAX 288
-#define TFY_MAX 221
-
-static uint16_t txMin;
-static uint16_t tyMin;
-static uint16_t txMax;
-static uint16_t tyMax;
-
-
-void ILI9341_t3DMA::callibrateTouch(uint16_t xMin,uint16_t yMin,uint16_t xMax,uint16_t yMax)  {
-  if ( (xMin >= 0) && (yMin >= 0) && (xMax < 320) && (yMax < 200) ) {
-      txMin = xMin;
-      tyMin = yMin;
-      txMax = xMax;
-      tyMax = yMax;     
-  }
-  else {
-    if (flipped) {
-      txMin = TFX_MIN;
-      tyMin = TFY_MIN;
-      txMax = TFX_MAX;
-      tyMax = TFY_MAX;              
-    }
-    else {
-      txMin = TX_MIN;
-      tyMin = TY_MIN;
-      txMax = TX_MAX;
-      tyMax = TY_MAX;      
-    }
-  }
-}
-
-void ILI9341_t3DMA::readRaw(uint16_t * oX, uint16_t * oY, uint16_t * oZ) {
-  uint16_t x = 0;
-  uint16_t y = 0;
-  uint16_t z1 = 0;
-  uint16_t z2 = 0;
-  uint8_t i = 0;
-  int16_t xraw=0, yraw=0;
-  SPI.beginTransaction(SPI_SETTING);
-  digitalWrite(_touch_cs, LOW);
-
-  for(; i < 15; i++) {
-    // SPI requirer 32bit aliment
-    uint8_t buf[12] = {
-      (XPT2046_CFG_START | XPT2046_CFG_12BIT | XPT2046_CFG_DFR | XPT2046_CFG_MUX(XPT2046_MUX_Y) | XPT2046_CFG_PWR(3)), 0x00, 0x00,
-      (XPT2046_CFG_START | XPT2046_CFG_12BIT | XPT2046_CFG_DFR | XPT2046_CFG_MUX(XPT2046_MUX_X) | XPT2046_CFG_PWR(3)), 0x00, 0x00,
-      (XPT2046_CFG_START | XPT2046_CFG_12BIT | XPT2046_CFG_DFR | XPT2046_CFG_MUX(XPT2046_MUX_Z1)| XPT2046_CFG_PWR(3)), 0x00, 0x00,
-      (XPT2046_CFG_START | XPT2046_CFG_12BIT | XPT2046_CFG_DFR | XPT2046_CFG_MUX(XPT2046_MUX_Z2)| XPT2046_CFG_PWR(3)), 0x00, 0x00
-    };
-    SPI.transfer(&buf[0], &buf[0], 12);
-    y += (buf[1] << 8 | buf[2])>>3;
-    x += (buf[4] << 8 | buf[5])>>3;
-    z1 += (buf[7] << 8 | buf[8])>>3;
-    z2 += (buf[10] << 8 | buf[11])>>3;
-  }
-
-  enableTouchIrq();
-
-  if(i == 0) {
-      *oX = 0;
-      *oY = 0;
-      *oZ = 0;
-  }
-  else {
-      x /= i;
-      y /= i;
-      z1 /= i;
-      z2 /= i;
-  }
-
-  digitalWrite(_touch_cs, HIGH);
-  SPI.endTransaction();
-  int z = z1 + ADC_MAX - z2;
-  if (flipped) {
-    xraw = x;
-    yraw = y;
-  } else {
-    xraw = ADC_MAX - x;
-    yraw = ADC_MAX - y;
-  }
-  xraw=(xraw*ILI9341_TFTREALWIDTH)/(ADC_MAX+1);
-  yraw=(yraw*ILI9341_TFTREALHEIGHT)/(ADC_MAX+1);
-
-  *oX = xraw;
-  *oY = yraw;
-  *oZ = z;
-}
-
-void ILI9341_t3DMA::readCal(uint16_t * oX, uint16_t * oY, uint16_t * oZ) {
-  readRaw(oX,oY,oZ);
-  // callibrate ...
-  if(*oX >= txMin) *oX = ((*oX - txMin)*ILI9341_TFTREALWIDTH)/(txMax-txMin);
-  if(*oY >= tyMin) *oY = ((*oY - tyMin)*ILI9341_TFTREALHEIGHT)/(tyMax-tyMin);
 }
 
 /***********************************************************************************************
@@ -881,5 +741,4 @@ inline uint16_t ILI9341_t3DMA::getPixel(int16_t x, int16_t y) {
   return 0;
 #endif  
 }
-
 #endif

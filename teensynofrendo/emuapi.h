@@ -3,14 +3,14 @@
 
 #define INVX        1
 //#define INVY        1
-#define HAS_SND     1
-#define CUSTOM_SND  1
+//#define HAS_SND     1
+//#define CUSTOM_SND  1
 //#define HAS_I2CKBD  1
 //#define TIMER_REND  1
 
-// Include uVGA output support?
-//#define UVGA_SUPPORT
-//#define TOUCHSCREEN_SUPPORT
+
+//#define UVGA_SUPPORT   // Include uVGA output support?
+//#define TOUCHSCREEN_SUPPORT  // use TFT touchscreen?
 
 // Title:     <                                        >
 #define TITLE "               NES Emulator             "
