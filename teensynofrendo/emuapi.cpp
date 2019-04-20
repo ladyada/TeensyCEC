@@ -41,9 +41,10 @@ static bool i2cKeyboardPresent = false;
 
 #define MENU_TFT_XOFFSET    (MENU_FILE_XOFFSET+MENU_FILE_W+8)
 #define MENU_TFT_YOFFSET    (MENU_VBAR_YOFFSET+32)
+#ifdef UVGA_SUPPORT
 #define MENU_VGA_XOFFSET    (MENU_FILE_XOFFSET+MENU_FILE_W+8)
 #define MENU_VGA_YOFFSET    (MENU_VBAR_YOFFSET+MENU_FILE_H-32-37)
-
+#endif
 
 #define MKEY_L1             1
 #define MKEY_L2             2
@@ -197,8 +198,10 @@ void toggleMenu(bool on) {
     tft.fillScreenNoDma(RGBVAL16(0x00,0x00,0x00));
     tft.drawTextNoDma(0,0, TITLE, RGBVAL16(0x00,0xff,0xff), RGBVAL16(0x00,0x00,0xff), true);  
     tft.drawSpriteNoDma(MENU_VBAR_XOFFSET,MENU_VBAR_YOFFSET,(uint16_t*)bmpvbar);
+#ifdef UVGA_SUPPORT
     tft.drawSpriteNoDma(MENU_TFT_XOFFSET,MENU_TFT_YOFFSET,(uint16_t*)bmptft);
     tft.drawSpriteNoDma(MENU_VGA_XOFFSET,MENU_VGA_YOFFSET,(uint16_t*)bmpvga);
+#endif
   } else {
     menuOn = false;    
   }
@@ -367,14 +370,20 @@ int handleMenu(uint16_t bClick)
      //tft.drawRectNoDma( rx,ry,rw,rh, KEYBOARD_HIT_COLOR );
     }
   }
-  else if ( (bClick & MASK_JOY2_BTN) || (c == MKEY_TFT) ) {
+  else if ( (bClick & MASK_JOY2_BTN) || (c == MKEY_TFT) 
+#ifndef UVGA_SUPPORT  
+            || (bClick & MASK_KEY_USER1)
+#endif
+  ) {
       menuRedraw=true;
       action = ACTION_RUNTFT;       
   }
+#ifdef UVGA_SUPPORT 
   else if ( (bClick & MASK_KEY_USER1) || (c == MKEY_VGA) ) {
       menuRedraw=true;
       action = ACTION_RUNVGA;    
   }
+#endif
   else if (bClick & MASK_JOY2_UP) {
     if (curFile!=0) {
       menuRedraw=true;
@@ -943,6 +952,3 @@ void handleVirtualkeyboard() {
     }
           
 }
-
-
-

@@ -8,6 +8,8 @@
 //#define HAS_I2CKBD  1
 //#define TIMER_REND  1
 
+// Include uVGA output support?
+//#define UVGA_SUPPORT
 
 // Title:     <                                        >
 #define TITLE "               NES Emulator             "
