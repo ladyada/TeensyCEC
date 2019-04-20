@@ -7,8 +7,10 @@
 #define TFT_SCLK        13
 #define TFT_MOSI        12
 #define TFT_MISO        11  
+#ifdef TOUCHSCREEN_SUPPORT
 #define TFT_TOUCH_CS    38
 #define TFT_TOUCH_INT   37
+#endif
 #define TFT_DC          9
 #define TFT_CS          10
 #define TFT_RST         255  // 255 = unused, connected to 3.3V
@@ -39,7 +41,3 @@
 
 
 #endif
-
-
-
-

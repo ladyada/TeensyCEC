@@ -10,6 +10,7 @@
 
 // Include uVGA output support?
 //#define UVGA_SUPPORT
+//#define TOUCHSCREEN_SUPPORT
 
 // Title:     <                                        >
 #define TITLE "               NES Emulator             "
@@ -86,7 +87,7 @@ const unsigned short keys[] = {
 
 
 extern void emu_init(void);
-extern void emu_printf(char * text);
+extern void emu_printf(const char * format);
 extern void emu_printi(int val);
 extern void * emu_Malloc(int size);
 extern void emu_Free(void * pt);
