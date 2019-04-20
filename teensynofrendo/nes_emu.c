@@ -107,24 +107,41 @@ void osd_getinput(void)
   	int hk = emu_ReadI2CKeyboard();  
   	int b=0xffff;
 
+  emu_printf("osd get input keys= 0x%04x i2c= 0x%04x : ", j, hk);
 
-	if (j & MASK_KEY_USER2) // B
+	if (j & MASK_KEY_USER2) { // B
+    emu_printf("B");
 		b &= ~0x4000;
-	if ( (hk == 2) ) // SELECT
+  }
+	if ( (j & MASK_KEY_USER3) || (hk == 2) ) {// SELECT
+    emu_printf("Sel");
 		b &= ~0x0001;
-	if ( (j & MASK_KEY_USER1) || (hk == 3) ) // START
+  }
+	if ( (j & MASK_KEY_USER1) || (hk == 3) ) {// START
+    emu_printf("Sta");
 		b &= ~0x0008;
-	if (j & MASK_JOY2_UP)
+  }
+	if (j & MASK_JOY2_UP) {
+		emu_printf("^");
 		b &= ~0x0010;
-	if (j & MASK_JOY2_LEFT)
+	}
+	if (j & MASK_JOY2_LEFT) {
+    emu_printf("<");
 		b &= ~0x0020;
-	if (j & MASK_JOY2_DOWN)
+	}
+	if (j & MASK_JOY2_DOWN) {
+    emu_printf("v");
 		b &= ~0x0040;
-	if (j & MASK_JOY2_RIGHT)
+	}
+	if (j & MASK_JOY2_RIGHT) {
+    emu_printf(">");
 		b &= ~0x0080;
-	if (j & MASK_JOY2_BTN)  // A
+  }
+	if (j & MASK_KEY_USER4) { // A
+    emu_printf("A");
 		b &= ~0x2000;
-
+  }
+  emu_printf("\n");
 	static int oldb=0xffff;
 
 	int chg=b^oldb;

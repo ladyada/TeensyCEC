@@ -532,9 +532,12 @@ void emu_init(void)
 }
 
 
-void emu_printf(const char * text)
+void emu_printf(const char * format, ...)
 {
-  Serial.println(text);
+  va_list args;
+  va_start(args, format);
+  Serial.printf(format, args);
+  va_end(args);
 }
 
 void emu_printf(int val)
@@ -799,6 +802,7 @@ int emu_ReadKeys(void)
   if ( digitalRead(PIN_KEY_USER3) == LOW ) retval |= MASK_KEY_USER3;
   if ( digitalRead(PIN_KEY_USER4) == LOW ) retval |= MASK_KEY_USER4;
 
+  Serial.print("Keys: 0x"); Serial.println(retval, HEX);
   return (retval);
 }
 
