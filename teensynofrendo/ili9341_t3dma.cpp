@@ -2,20 +2,19 @@
   Copyright Frank Bösing, 2017
 */
 
-#ifdef TEENSYDUINO
-
 #include "ili9341_t3dma.h"
 #include "font8x8.h"
+#include <SPI.h>
 
 #define SPICLOCK 8000000 //Just a number..max speed
 
 // touch
 #define SPI_SETTING         SPISettings(2500000, MSBFIRST, SPI_MODE0)
-#define XPT2046_CFG_START   _BV(7)
+#define XPT2046_CFG_START   (1 << 7)
 #define XPT2046_CFG_MUX(v)  ((v&0b111) << (4))
-#define XPT2046_CFG_8BIT    _BV(3)
+#define XPT2046_CFG_8BIT    (1 << 3)
 #define XPT2046_CFG_12BIT   (0)
-#define XPT2046_CFG_SER     _BV(2)
+#define XPT2046_CFG_SER     (1 << 2)
 #define XPT2046_CFG_DFR     (0)
 #define XPT2046_CFG_PWR(v)  ((v&0b11))
 #define XPT2046_MUX_Y       0b101
@@ -30,12 +29,13 @@ static uint16_t * screen=NULL; //=dmascreen;
 static uint16_t * screen;
 #endif
 
+#ifdef TEENSYDUINO
 static DMASetting dmasettings[SCREEN_DMA_NUM_SETTINGS];
 static DMAChannel dmatx;
 volatile uint8_t rstop = 0;
 volatile bool cancelled = false;
 volatile uint8_t ntransfer = 0;
-
+#endif
 
 static const uint8_t init_commands[] = {
   4, 0xEF, 0x03, 0x80, 0x02,
@@ -65,7 +65,7 @@ static const uint8_t init_commands[] = {
   0
 };
 
-
+#ifdef TEENSYDUINO
 static void dmaInterrupt() {
   dmatx.clearInterrupt();
   ntransfer++;
@@ -113,7 +113,7 @@ static void setDmaStruct() {
   dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].interruptAtCompletion(); 
   //dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].disableOnCompletion();
 }
-
+#endif
 
 ILI9341_t3DMA::ILI9341_t3DMA(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t mosi, uint8_t sclk, uint8_t miso,  uint8_t touch_cs,  uint8_t touch_irq)
 {
@@ -167,12 +167,13 @@ void ILI9341_t3DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
 
 
 void ILI9341_t3DMA::begin(void) {
-
+#ifdef TEENSYDUINO
   SPI.setMOSI(_mosi);
   SPI.setMISO(_miso);
   SPI.setSCK(_sclk);
+#endif
   SPI.begin();
-      
+
   // Initialize display
   if (_rst < 255) { // toggle RST low to reset
     pinMode(_rst, OUTPUT);
@@ -220,6 +221,7 @@ void ILI9341_t3DMA::begin(void) {
   digitalWrite(_cs, 1);
   SPI.endTransaction();
 
+#ifdef TEENSYDUINO
   setDmaStruct();
 
   dmatx.attachInterrupt(dmaInterrupt);
@@ -227,7 +229,9 @@ void ILI9341_t3DMA::begin(void) {
   dmatx.begin(false);
   dmatx.triggerAtHardwareEvent(DMAMUX_SOURCE_SPI0_TX );
   dmatx = dmasettings[0];
-  cancelled = false; 
+  cancelled = false;
+#endif
+
 #ifdef FLIP_SCREEN          
   flipscreen(true);           
 #endif            
@@ -260,6 +264,7 @@ boolean ILI9341_t3DMA::isflipped(void)
   
 
 void ILI9341_t3DMA::start(void) {
+#ifdef TEENSYDUINO
   uint16_t centerdx = (ILI9341_TFTREALWIDTH - max_screen_width)/2;
   uint16_t centerdy = (ILI9341_TFTREALHEIGHT - max_screen_height)/2;
   setArea(centerdx, centerdy, max_screen_width+centerdx, max_screen_height+centerdy);
@@ -267,11 +272,12 @@ void ILI9341_t3DMA::start(void) {
   SPI0_MCR &= ~SPI_MCR_HALT;  //Start transfers.
   SPI0_CTAR0 = SPI0_CTAR1;
   (*(volatile uint16_t *)((int)&SPI0_PUSHR + 2)) = (SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT) >> 16; //Enable 16 Bit Transfers + Continue-Bit
+#endif
 }
 
 
 void ILI9341_t3DMA::refresh(void) {
-#ifdef DMA_FULL
+#if defined(DMA_FULL) && defined(TEENSYDUINO) 
   if (screen != NULL) {
     setDmaStruct();
     start();
@@ -288,9 +294,11 @@ void ILI9341_t3DMA::refresh(void) {
 
 
 void ILI9341_t3DMA::stop(void) {
+#ifdef TEENSYDUINO
   rstop = 0;
   wait();
   delay(50);
+#endif
   //dmatx.disable();
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));  
   SPI.endTransaction();
@@ -299,6 +307,7 @@ void ILI9341_t3DMA::stop(void) {
 }
 
 void ILI9341_t3DMA::wait(void) {
+#ifdef TEENSYDUINO
   rstop = 1;
   unsigned long m = millis(); 
   cancelled = true; 
@@ -308,6 +317,7 @@ void ILI9341_t3DMA::wait(void) {
     asm volatile("wfi");
   };
   rstop = 0;
+#endif
 }
 
 uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
@@ -327,6 +337,7 @@ uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
  * Copyright (c) 2015 Markus Sattler. All rights reserved.
  * This file is part of the XPT2046 driver for Arduino.
  */
+#ifdef TOUCHSCREEN_SUPPORT
 
 #define ADC_MAX                 0x0fff  
 
@@ -443,6 +454,7 @@ void ILI9341_t3DMA::readCal(uint16_t * oX, uint16_t * oY, uint16_t * oZ) {
   if(*oX >= txMin) *oX = ((*oX - txMin)*ILI9341_TFTREALWIDTH)/(txMax-txMin);
   if(*oY >= tyMin) *oY = ((*oY - tyMin)*ILI9341_TFTREALHEIGHT)/(tyMax-tyMin);
 }
+#endif
 
 /***********************************************************************************************
     no DMA functions
@@ -882,5 +894,3 @@ inline uint16_t ILI9341_t3DMA::getPixel(int16_t x, int16_t y) {
   return 0;
 #endif  
 }
-
-#endif

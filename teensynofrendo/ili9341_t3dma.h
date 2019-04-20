@@ -2,7 +2,6 @@
   Copyright Frank Bösing, 2017
 */
 
-#ifdef TEENSYDUINO
 
 #ifndef _ILI9341_T3DMAH_
 #define _ILI9341_T3DMAH_
@@ -10,7 +9,9 @@
 #ifdef __cplusplus
 #include <Arduino.h>
 #include <SPI.h>
-#include <DMAChannel.h>
+#ifdef TEENSYDUINO
+  #include <DMAChannel.h>
+#endif
 #endif
 
 #define DMA_FULL 1
@@ -150,4 +151,3 @@ class ILI9341_t3DMA
 
 #endif // C++
 #endif // Header guard
-#endif // teensy

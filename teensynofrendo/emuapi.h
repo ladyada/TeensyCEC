@@ -2,9 +2,9 @@
 #define EMUAPI_H
 
 //#define INVX        1
-#define INVY        1
-#define HAS_SND     1
-#define CUSTOM_SND  1
+//#define INVY        1
+//#define HAS_SND     1
+//#define CUSTOM_SND  1
 //#define HAS_I2CKBD  1
 //#define TIMER_REND  1
 
@@ -87,7 +87,7 @@ const unsigned short keys[] = {
 
 
 extern void emu_init(void);
-extern void emu_printf(char * text);
+extern void emu_printf(const char * text);
 extern void emu_printi(int val);
 extern void * emu_Malloc(int size);
 extern void emu_Free(void * pt);
@@ -122,7 +122,3 @@ extern void emu_resetus(void);
 extern int emu_us(void);
 
 #endif
-
-
-
-

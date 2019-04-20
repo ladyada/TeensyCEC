@@ -5,7 +5,6 @@ extern "C" {
   #include "iopins.h"  
 }
 
-#include "ili9341_t3dma.h"
 #include "logo.h"
 #include "bmpjoy.h"
 #include "bmpvbar.h"
@@ -16,8 +15,14 @@ extern "C" {
 #include <i2c_t3.h>
 #endif
 
+#include "ili9341_t3dma.h"
 extern ILI9341_t3DMA tft;
-static SdFatSdio sd;
+#ifdef TEENSYDUINO
+  static SdFatSdio sd;
+#else
+  static SdFat sd;
+#endif
+
 static File file;
 static char romspath[64];
 static int16_t calMinX=-1,calMinY=-1,calMaxX=-1,calMaxY=-1;
@@ -503,11 +508,15 @@ void emu_init(void)
   Serial.println(nbFiles);
 
   emu_InitJoysticks();
+
+#ifdef TOUCHSCREEN_SUPPORT
   readCallibration();
  
   if ((tft.isTouching()) || (emu_ReadKeys() & MASK_JOY2_BTN) ) {
     callibrationInit();
-  } else  {
+  } else
+#endif
+  {
     toggleMenu(true);
   }
 

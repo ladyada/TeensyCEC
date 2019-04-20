@@ -24,6 +24,7 @@
 */
 
 #include <string.h>
+#include <stdlib.h>
 #include "noftypes.h"
 #include "log.h"
 #include "nes_apu.h"

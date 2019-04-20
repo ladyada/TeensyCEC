@@ -7,7 +7,6 @@ extern "C" {
 #include "keyboard_osd.h"
 
 #ifdef TEENSYDUINO
-#include "ili9341_t3dma.h"
 #include <elapsedMillis.h>
 #endif
 
@@ -51,18 +50,22 @@ bool vgaMode = false;
   #endif
 #endif
 
+ #include "ili9341_t3dma.h"
 #ifdef TOUCHSCREEN_SUPPORT
-ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO, TFT_TOUCH_CS, TFT_TOUCH_INT);
+  ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO, TFT_TOUCH_CS, TFT_TOUCH_INT);
 #else
-ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
+  ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
 #endif
 
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
-static IntervalTimer myTimer;
+#ifdef TEENSYDUINO
+  static IntervalTimer myTimer;
+  static elapsedMicros tius;
+#endif
+
 volatile boolean vbl=true;
 static int skip=0;
-static elapsedMicros tius;
 
 
 static void main_step() {
@@ -162,12 +165,13 @@ void setup() {
   tft.start();
 
   emu_init();  
-  
-#ifdef TIMER_REND
-  myTimer.begin(vblCount, 10000);  //to run every 10ms
-#else
-  myTimer.begin(vblCount, 5000);  // will try to VSYNC next at 5ms
-#endif    
+#ifdef TEENSYDUINO  
+  #ifdef TIMER_REND
+    myTimer.begin(vblCount, 10000);  //to run every 10ms
+  #else
+    myTimer.begin(vblCount, 5000);  // will try to VSYNC next at 5ms
+  #endif
+#endif
 }
 
 
