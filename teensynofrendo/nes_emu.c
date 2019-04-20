@@ -111,7 +111,7 @@ void osd_getinput(void)
 
 	if (j & MASK_KEY_USER2) // B
 		b &= ~0x4000;
-	if ( (hk == 2) ) // SELECT
+	if ( (j & MASK_KEY_USER3) || (hk == 2) ) // SELECT
 		b &= ~0x0001;
 	if ( (j & MASK_KEY_USER1) || (hk == 3) ) // START
 		b &= ~0x0008;
@@ -123,7 +123,7 @@ void osd_getinput(void)
 		b &= ~0x0040;
 	if (j & MASK_JOY2_RIGHT)
 		b &= ~0x0080;
-	if (j & MASK_JOY2_BTN)  // A
+	if (j & MASK_KEY_USER2)  // A
 		b &= ~0x2000;
 
 	static int oldb=0xffff;
@@ -283,5 +283,3 @@ void nes_Start(char * filename)
 		}  
 	}
 }
-
-

@@ -82,7 +82,7 @@ static void main_step() {
   if (menuActive()) {
     int action = handleMenu(bClick);
     char * filename = menuSelection();
-    if (action == ACTION_RUNTFT) {
+    if (action == ACTION_RUNVGA) {
       tft.setFrameBuffer((uint16_t *)malloc((ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH)*sizeof(uint16_t)));     
       Serial.print("TFT init: ");  
       Serial.println(tft.getFrameBuffer()?"ok":"ko");       
@@ -285,10 +285,3 @@ void emu_sndPlayBuzz(int size, int val) {
 }
 
 #endif
-
-
-
-
-
-
-

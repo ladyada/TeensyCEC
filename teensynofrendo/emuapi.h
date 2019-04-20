@@ -1,8 +1,8 @@
 #ifndef EMUAPI_H
 #define EMUAPI_H
 
-//#define INVX        1
-#define INVY        1
+#define INVX        1
+//#define INVY        1
 #define HAS_SND     1
 #define CUSTOM_SND  1
 //#define HAS_I2CKBD  1
@@ -119,7 +119,3 @@ extern void emu_resetus(void);
 extern int emu_us(void);
 
 #endif
-
-
-
-
