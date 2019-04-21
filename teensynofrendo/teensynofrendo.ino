@@ -69,6 +69,7 @@ static unsigned short palette16[PALETTE_SIZE];
   #include "Adafruit_ZeroTimer.h"
   #define MY_TIMER_TC 5
   #define TIMER_LED 22
+  #define FRAME_LED 23
   Adafruit_ZeroTimer myTimer = Adafruit_ZeroTimer(MY_TIMER_TC);
 
   void TC5_Handler(){  // change this to match TC #
@@ -196,7 +197,7 @@ void setup() {
     myTimer.begin(vblCount, 5000);  // will try to VSYNC next at 5ms
   #endif
 #elif defined(__SAMD51__)
-  myTimer.configure(TC_CLOCK_PRESCALER_DIV16, // prescaler
+  myTimer.configure(TC_CLOCK_PRESCALER_DIV4, // prescaler
                 TC_COUNTER_SIZE_16BIT,   // bit width of timer/counter
                 TC_WAVE_GENERATION_MATCH_PWM // frequency or PWM mode
                 );
@@ -205,7 +206,12 @@ void setup() {
   myTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, Timer5Callback);
   myTimer.enable(true);
 #endif
+#ifdef TIMER_LED
   pinMode(TIMER_LED, OUTPUT);
+#endif
+#ifdef FRAME_LED
+  pinMode(FRAME_LED, OUTPUT);
+#endif
 }
 
 
@@ -236,7 +242,9 @@ void emu_DrawVsync(void)
   skip &= VID_FRAME_SKIP;
 
 #if defined(__SAMD51__)
+  digitalWrite(FRAME_LED, HIGH);
   tft.writeScreenNoDma(tft.getFrameBuffer());
+  digitalWrite(FRAME_LED, LOW);
 #endif
   if (!vgaMode) {
     while (vbl==vb) {};

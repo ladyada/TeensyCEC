@@ -3,10 +3,20 @@
 */
 
 #if defined(__SAMD51__)
+
+
 #include "ili9341_samd51.h"
 #include "font8x8.h"
 
-#define SPICLOCK 8000000
+#define SPICLOCK 24000000
+
+#define MADCTL_MY  0x80  ///< Bottom to top
+#define MADCTL_MX  0x40  ///< Right to left
+#define MADCTL_MV  0x20  ///< Reverse Mode
+#define MADCTL_ML  0x10  ///< LCD refresh Bottom to top
+#define MADCTL_RGB 0x00  ///< Red-Green-Blue pixel order
+#define MADCTL_BGR 0x08  ///< Blue-Green-Red pixel order
+#define MADCTL_MH  0x04  ///< LCD refresh right to left
 
 #ifdef DMA_FULL
 //static DMAMEM uint16_t dmascreen[ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH+ILI9341_VIDEOMEMSPARE];
@@ -22,33 +32,13 @@ volatile uint8_t rstop = 0;
 volatile bool cancelled = false;
 volatile uint8_t ntransfer = 0;
 */
-static const uint8_t init_commands[] = {
-  4, 0xEF, 0x03, 0x80, 0x02,
-  4, 0xCF, 0x00, 0XC1, 0X30,
-  5, 0xED, 0x64, 0x03, 0X12, 0X81,
-  4, 0xE8, 0x85, 0x00, 0x78,
-  6, 0xCB, 0x39, 0x2C, 0x00, 0x34, 0x02,
-  2, 0xF7, 0x20,
-  3, 0xEA, 0x00, 0x00,
-  2, ILI9341_PWCTR1, 0x23, // Power control
-  2, ILI9341_PWCTR2, 0x10, // Power control
-  3, ILI9341_VMCTR1, 0x3e, 0x28, // VCM control
-  2, ILI9341_VMCTR2, 0x86, // VCM control2
-  2, ILI9341_MADCTL, 0x48, // Memory Access Control
-  2, ILI9341_PIXFMT, 0x55,
-  3, ILI9341_FRMCTR1, 0x00, 0x18,
-  4, ILI9341_DFUNCTR, 0x08, 0x82, 0x27, // Display Function Control
-  2, 0xF2, 0x00, // Gamma Function Disable
-  2, ILI9341_GAMMASET, 0x01, // Gamma curve selected
-  16, ILI9341_GMCTRP1, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08,
-  0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00, // Set Gamma
-  16, ILI9341_GMCTRN1, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07,
-  0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F, // Set Gamma
+
+/*
 //  3, 0xb1, 0x00, 0x1f, // FrameRate Control 61Hz
   3, 0xb1, 0x00, 0x10, // FrameRate Control 119Hz
   2, ILI9341_MADCTL, MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR,
   0
-};
+*/
 
 
 static void dmaInterrupt() {
@@ -104,7 +94,8 @@ static void setDmaStruct() {
 }
 
 
-ILI9341_t3DMA::ILI9341_t3DMA(int8_t cs, int8_t dc, int8_t rst)
+ILI9341_t3DMA::ILI9341_t3DMA(int8_t cs, int8_t dc, int8_t rst) :
+_tft(cs, dc)
 {
   _cs   = cs;
   _dc   = dc;
@@ -148,55 +139,7 @@ void ILI9341_t3DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
 
 
 void ILI9341_t3DMA::begin(void) {
-
-  SPI.begin();
-      
-  // Initialize display
-  if (_rst >= 0) { // toggle RST low to reset
-    pinMode(_rst, OUTPUT);
-    digitalWrite(_rst, HIGH);
-    delay(5);
-    digitalWrite(_rst, LOW);
-    delay(20);
-    digitalWrite(_rst, HIGH);
-    delay(120);
-  }
-  
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  const uint8_t *addr = init_commands;
-
-  digitalWrite(_cs, 0);
-
-  while (1) {
-    uint8_t count = *addr++;
-    if (count-- == 0) break;
-
-    digitalWrite(_dc, 0);
-    SPI.transfer(*addr++);
-
-    while (count-- > 0) {
-      digitalWrite(_dc, 1);
-      SPI.transfer(*addr++);
-    }
-  }
-  
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_SLPOUT);
-  digitalWrite(_dc, 1);
-  digitalWrite(_cs, 1);
-  SPI.endTransaction();
-
-  digitalWrite(_dc, 1);
-  digitalWrite(_cs, 1);
-  SPI.endTransaction();
-
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  digitalWrite(_dc, 0);
-  digitalWrite(_cs, 0);
-  SPI.transfer(ILI9341_DISPON);
-  digitalWrite(_dc, 1);
-  digitalWrite(_cs, 1);
-  SPI.endTransaction();
+  _tft.begin();
 /*
   setDmaStruct();
 
@@ -208,35 +151,20 @@ void ILI9341_t3DMA::begin(void) {
   cancelled = false; 
   */
 #ifdef FLIP_SCREEN          
-  flipscreen(true);           
+  _tft.setRotation(1);
 #endif            
 
 };
 
 void ILI9341_t3DMA::flipscreen(bool flip)
 {
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  digitalWrite(_dc, 0);
-  digitalWrite(_cs, 0);
-  SPI.transfer(ILI9341_MADCTL);
-  digitalWrite(_dc, 1);
   if (flip) {
-    flipped=true;    
-    SPI.transfer(MADCTL_MV | MADCTL_BGR);
-  }
-  else {
-    flipped=false;   
-    SPI.transfer(MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
-  }
-  digitalWrite(_cs, 1);  
-  SPI.endTransaction();
+    _tft.setRotation(1);
+  } else {
+    _tft.setRotation(0);
+  } 
 }
 
-boolean ILI9341_t3DMA::isflipped(void)
-{
-  return(flipped);
-}
-  
 
 void ILI9341_t3DMA::start(void) {
   Serial.println("DMA start");
@@ -313,26 +241,8 @@ uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
     no DMA functions
  ***********************************************************************************************/
 void ILI9341_t3DMA::fillScreenNoDma(uint16_t color) {
-  setArea(0, 0, ILI9341_TFTREALWIDTH-1, ILI9341_TFTREALHEIGHT-1);  
-  
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  digitalWrite(_cs, 0);
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_RAMWR);
-  int i,j;
-  for (j=0; j<ILI9341_TFTREALHEIGHT; j++)
-  {
-    for (i=0; i<ILI9341_TFTREALWIDTH; i++) {
-      digitalWrite(_dc, 1);
-      SPI.transfer16(color);     
-    }
-  }
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_SLPOUT);
-  digitalWrite(_dc, 1);
-  digitalWrite(_cs, 1);
-  SPI.endTransaction();  
-  
+  _tft.fillScreen(color);
+
   setArea(0, 0, max_screen_width, max_screen_height);  
 }
 
@@ -707,24 +617,4 @@ void ILI9341_t3DMA::writeLine(int width, int height, int stride, uint8_t *buf, u
   }
 }
 
-
-//void ILI9341_t3DMA::writeScreen(const uint16_t *pcolors) {
-//#if 0
-//  memcpy(&screen, pcolors, sizeof(screen));
-//#endif  
-//}
-
-void ILI9341_t3DMA::drawPixel(int16_t x, int16_t y, uint16_t color) {
-#if 0    
-  screen[y][x] = color;
-#endif  
-}
-
-inline uint16_t ILI9341_t3DMA::getPixel(int16_t x, int16_t y) {
-#if 0    
-  return screen[y][x];
-#else
-  return 0;
-#endif  
-}
 #endif
