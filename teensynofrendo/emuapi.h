@@ -58,18 +58,6 @@ const unsigned short keys[] = {
 #endif
 
 
-#define MASK_JOY2_RIGHT 0x001
-#define MASK_JOY2_LEFT  0x002
-#define MASK_JOY2_UP    0x004
-#define MASK_JOY2_DOWN  0x008
-#define MASK_JOY2_BTN   0x010
-#define MASK_KEY_USER1  0x020
-#define MASK_KEY_USER2  0x040
-#define MASK_KEY_USER3  0x080
-#define MASK_KEY_USER4  0x100
-#define MASK_KEY_ESCAPE 0x200
-
-
 extern void emu_init(void);
 extern void emu_printf(const char * format);
 extern void emu_printi(int val);

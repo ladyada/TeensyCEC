@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "Adafruit_Arcada_Def.h"
 
 //Nes stuff wants to define this as well...
 #undef false
@@ -102,29 +103,27 @@ void osd_getinput(void)
 	const int ev[16]={
 			event_joypad1_select,0,0,event_joypad1_start,event_joypad1_up,event_joypad1_right,event_joypad1_down,event_joypad1_left,
 			0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
-		};
+  };
 
-  	int j=emu_ReadKeys();
-  	int hk = emu_ReadI2CKeyboard();  
-  	int b=0xffff;
+  int j = emu_ReadKeys();
+  int b = 0xffff;
 
-
-	if (j & MASK_KEY_USER2) // B
+  if (j & ARCADA_BUTTONMASK_A)  // A
+    b &= ~0x2000;
+	if (j & ARCADA_BUTTONMASK_B) // B
 		b &= ~0x4000;
-	if ( (j & MASK_KEY_USER3) || (hk == 2) ) // SELECT
+	if ( (j & ARCADA_BUTTONMASK_SELECT) ) // SELECT
 		b &= ~0x0001;
-	if ( (j & MASK_KEY_USER1) || (hk == 3) ) // START
+	if ( (j & ARCADA_BUTTONMASK_START)) // START
 		b &= ~0x0008;
-	if (j & MASK_JOY2_UP)
+	if (j & ARCADA_BUTTONMASK_UP)
 		b &= ~0x0010;
-	if (j & MASK_JOY2_LEFT)
+	if (j & ARCADA_BUTTONMASK_LEFT)
 		b &= ~0x0020;
-	if (j & MASK_JOY2_DOWN)
+	if (j & ARCADA_BUTTONMASK_DOWN)
 		b &= ~0x0040;
-	if (j & MASK_JOY2_RIGHT)
+	if (j & ARCADA_BUTTONMASK_RIGHT)
 		b &= ~0x0080;
-	if (j & MASK_KEY_USER2)  // A
-		b &= ~0x2000;
 
 	static int oldb=0xffff;
 

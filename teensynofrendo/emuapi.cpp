@@ -7,8 +7,12 @@ extern "C" {
 
 #if defined(TEENSYDUINO)
   #include "ili9341_t3dma.h"
+  #include <SdFat.h>
+  static SdFatSdio sd;
 #elif defined(__SAMD51__)
   #include "ili9341_samd51.h"
+  #include <Adafruit_Arcada.h>
+  extern Adafruit_Arcada arcada;
 #endif
 
 
@@ -17,17 +21,12 @@ extern "C" {
 #include "bmpvbar.h"
 #include "bmpvga.h"
 #include "bmptft.h"
-#include <SdFat.h>
 #ifdef HAS_I2CKBD
 #include <i2c_t3.h>
 #endif
 
 extern ILI9341_t3DMA tft;
-#ifdef TEENSYDUINO
-  static SdFatSdio sd;
-#else
-  static SdFat sd(&SD_SPI_PORT);
-#endif
+
 static File file;
 static char romspath[64];
 static int16_t calMinX=-1,calMinY=-1,calMaxX=-1,calMaxY=-1;
@@ -108,7 +107,7 @@ static int readNbFiles(void) {
   int totalFiles = 0;
   char filename[MAX_FILENAME_SIZE+1];
   File entry;  
-  file = sd.open(romspath);
+  file = arcada.open(romspath);
   while (true) {
     entry = file.openNextFile();
     if (! entry) {
@@ -259,7 +258,7 @@ static void readCallibration(void)
 static void writeCallibration(void) 
 {
   tft.callibrateTouch(calMinX,calMinY,calMaxX,calMaxY);
-  File file = sd.open(CALIBRATION_FILE, O_WRITE | O_CREAT | O_TRUNC);
+  File file = arcada.open(CALIBRATION_FILE, O_WRITE | O_CREAT | O_TRUNC);
   if (file.isOpen()) {
     file.print(calMinX);
     file.print(" ");
@@ -322,7 +321,6 @@ int handleCallibration(uint16_t bClick) {
           tft.drawTextNoDma(0,100, "          Callibration done!", RGBVAL16(0x00,0x00,0x00), RGBVAL16(0xff,0xff,0xff), true);
           tft.drawTextNoDma(0,116, "        (Click center to exit)", RGBVAL16(0xff,0x00,0x00), RGBVAL16(0xff,0xff,0xff), true);           
           callibrationStep++;
-          calMinX += xt;
           calMaxY += yt;       
           break;                 
         case 4:
@@ -367,84 +365,39 @@ int handleMenu(uint16_t bClick)
   strcpy(newpath, romspath);
   strcat(newpath, "/");
   strcat(newpath, selection);
-  File entry = sd.open(newpath);
+  File entry = arcada.open(newpath);
 
-#ifdef TOUCHSCREEN_SUPPORT
-  int rx=0,ry=0,rw=0,rh=0;
-  char c = captureTouchZone(menutouchareas, menutouchactions, &rx,&ry,&rw,&rh);
-#else
   char c = 255;
-#endif
-  if ( ( (bClick & MASK_JOY2_BTN) || (bClick & MASK_KEY_USER1) )  && (entry.isDirectory()) ) {
+
+  if ( (bClick & ARCADA_BUTTONMASK_A)  && (entry.isDirectory()) ) {
       menuRedraw=true;
       strcpy(romspath,newpath);
       curFile = 0;
       nbFiles = readNbFiles();     
   }
-  else if ( (c >= MKEY_L1) && (c <= MKEY_L9) ) {
-    if ( (topFile+(int)c-1) <= (nbFiles-1)  )
-    {
-      curFile = topFile + (int)c -1;
-      menuRedraw=true;
-     //tft.drawRectNoDma( rx,ry,rw,rh, KEYBOARD_HIT_COLOR );
-    }
-  }
-  else if ( (bClick & MASK_JOY2_BTN) || (c == MKEY_TFT) 
-#ifndef UVGA_SUPPORT  
-            || (bClick & MASK_KEY_USER1)
-#endif
-  ) {
+  else if (bClick & ARCADA_BUTTONMASK_START) {
       menuRedraw=true;
       action = ACTION_RUNTFT;       
   }
-#ifdef UVGA_SUPPORT 
-  else if ( (bClick & MASK_KEY_USER1) || (c == MKEY_VGA) ) {
-      menuRedraw=true;
-      action = ACTION_RUNVGA;    
-  }
-#endif
-  else if (bClick & MASK_JOY2_UP) {
+  else if (bClick & ARCADA_BUTTONMASK_UP) {
     if (curFile!=0) {
       menuRedraw=true;
       curFile--;
     }
-  }
-  else if (c == MKEY_UP) {
-    if ((curFile-9)>=0) {
-      menuRedraw=true;
-      curFile -= 9;
-    } else if (curFile!=0) {
-      menuRedraw=true;
-      curFile--;
-    }
-  }  
-  else if (bClick & MASK_JOY2_DOWN)  {
+  } 
+  else if (bClick & ARCADA_BUTTONMASK_DOWN)  {
     if ((curFile<(nbFiles-1)) && (nbFiles)) {
       curFile++;
       menuRedraw=true;
     }
   }
-  else if (c == MKEY_DOWN) {
-    if ((curFile<(nbFiles-9)) && (nbFiles)) {
-      curFile += 9;
-      menuRedraw=true;
-    }
-    else if ((curFile<(nbFiles-1)) && (nbFiles)) {
-      curFile++;
-      menuRedraw=true;
-    }
-  }
-  else if ( (bClick & MASK_JOY2_RIGHT) || (bClick & MASK_JOY2_LEFT) || (c == MKEY_JOY) ) {
-    emu_SwapJoysticks(0);
-    menuRedraw=true;  
-  }   
     
   if (menuRedraw && nbFiles) {
          
     int fileIndex = 0;
     char filename[MAX_FILENAME_SIZE+1];
     File entry;    
-    file = sd.open(romspath); 
+    file = arcada.open(romspath); 
     tft.drawRectNoDma(MENU_FILE_XOFFSET,MENU_FILE_YOFFSET, MENU_FILE_W, MENU_FILE_H, MENU_FILE_BGCOLOR);
 //    if (curFile <= (MAX_MENULINES/2-1)) topFile=0;
 //    else topFile=curFile-(MAX_MENULINES/2);
@@ -482,8 +435,6 @@ int handleMenu(uint16_t bClick)
       entry.close();
     }
 
-    tft.drawSpriteNoDma(0,MENU_JOYS_YOFFSET,(uint16_t*)bmpjoy);  
-    tft.drawTextNoDma(48,MENU_JOYS_YOFFSET+8, (emu_SwapJoysticks(1)?(char*)"SWAP=1":(char*)"SWAP=0"), RGBVAL16(0x00,0xff,0xff), RGBVAL16(0xff,0x00,0x00), false);
     file.close();
     menuRedraw=false;     
   }
@@ -504,8 +455,13 @@ void emu_init(void)
   Serial.begin(115200);
   //while (!Serial) {}
 
-  if (!sd.begin(SD_CS)) {
-    emu_printf("SdFat.begin() failed");
+  if (!arcada.begin()) {
+    emu_printf("Couldn't init arcada");
+    while (1);
+  }
+  if (!arcada.filesysBegin()) {
+    emu_printf("Filesystem failed");
+    while (1);
   }
   strcpy(romspath,ROMSDIR);
   nbFiles = readNbFiles(); 
@@ -513,26 +469,7 @@ void emu_init(void)
   Serial.print("SD initialized, files found: ");
   Serial.println(nbFiles);
 
-  emu_InitJoysticks();
-#ifdef TOUCHSCREEN_SUPPORT
-  readCallibration();
-  if ((tft.isTouching()) || (emu_ReadKeys() & MASK_JOY2_BTN) ) {
-    callibrationInit();
-  } else 
-#endif
-  {
-    toggleMenu(true);
-  }
-
-#ifdef HAS_I2CKBD
-  Wire2.begin(); // join i2c bus SDA2/SCL2
-  Wire2.setDefaultTimeout(200000); // 200ms  
-  Wire2.requestFrom(8, 5);
-  if(!Wire2.getError()) {
-    i2cKeyboardPresent = true;
-    emu_printf("i2C keyboard found");    
-  }  
-#endif 
+  toggleMenu(true);
 }
 
 
@@ -581,7 +518,7 @@ int emu_FileOpen(char * filename)
   strcat(filepath, filename);
   emu_printf("FileOpen...");
   emu_printf(filepath);
-    
+  
   if (file.open(filepath, O_READ)) {
     retval = 1;  
   }
@@ -696,79 +633,10 @@ int emu_LoadFileSeek(char * filename, char * buf, int size, int seek)
 static int keypadval=0; 
 static boolean joySwapped = false;
 static uint16_t bLastState;
-static int xRef;
-static int yRef;
-
-
-int emu_ReadAnalogJoyX(int min, int max) 
-{
-  int val = analogRead(PIN_JOY2_A1X);
-#if INVX
-  val = 4095 - val;
-#endif
-  val = val-xRef;
-  val = ((val*140)/100);
-  if ( (val > -512) && (val < 512) ) val = 0;
-  val = val+2048;
-  //Serial.print("X: "); Serial.println(val);
-  return (val*(max-min))/4096;
-}
-
-int emu_ReadAnalogJoyY(int min, int max) 
-{
-  int val = analogRead(PIN_JOY2_A2Y);
-#if INVY
-  val = 4095 - val;
-#endif
-  val = val-yRef;
-  val = ((val*120)/100);
-  if ( (val > -512) && (val < 512) ) val = 0;
-  //val = (val*(max-min))/4096;
-  val = val+2048;
-  //return val+(max-min)/2;
-  //Serial.print("Y: "); Serial.println(val);
-  return (val*(max-min))/4096;
-}
-
-
-static uint16_t readAnalogJoystick(void)
-{
-  uint16_t joysval = 0;
-
-  int xReading = emu_ReadAnalogJoyX(0,256);
-  if (xReading > 128) joysval |= MASK_JOY2_LEFT;
-  else if (xReading < 128) joysval |= MASK_JOY2_RIGHT;
-  
-  int yReading = emu_ReadAnalogJoyY(0,256);
-  if (yReading < 128) joysval |= MASK_JOY2_UP;
-  else if (yReading > 128) joysval |= MASK_JOY2_DOWN;
-  
-  joysval |= (digitalRead(PIN_JOY2_BTN) == HIGH ? 0 : MASK_JOY2_BTN);
-
-  return (joysval);     
-}
-
-
-int emu_SwapJoysticks(int statusOnly) {
-  if (!statusOnly) {
-    if (joySwapped) {
-      joySwapped = false;
-    }
-    else {
-      joySwapped = true;
-    }
-  }
-  return(joySwapped?1:0);
-}
 
 unsigned short emu_DebounceLocalKeys(void)
 {
-  uint16_t bCurState = readAnalogJoystick();
-  bCurState |= (digitalRead(PIN_KEY_ESCAPE) == HIGH ? 0 : MASK_KEY_ESCAPE);
-  bCurState |= (digitalRead(PIN_KEY_USER1) == HIGH ? 0 : MASK_KEY_USER1);
-  bCurState |= (digitalRead(PIN_KEY_USER2) == HIGH ? 0 : MASK_KEY_USER2);
-  bCurState |= (digitalRead(PIN_KEY_USER3) == HIGH ? 0 : MASK_KEY_USER3);
-  bCurState |= (digitalRead(PIN_KEY_USER4) == HIGH ? 0 : MASK_KEY_USER4);
+  uint16_t bCurState = arcada.readButtons();
 
   uint16_t bClick = bCurState & ~bLastState;
   bLastState = bCurState;
@@ -783,103 +651,8 @@ int emu_GetPad(void)
 
 int emu_ReadKeys(void) 
 {
-  uint16_t retval;
-  uint16_t j1 = readAnalogJoystick();
-  uint16_t j2 = 0;
-  // Second joystick
-  if ( digitalRead(PIN_JOY1_1) == LOW ) j2 |= MASK_JOY2_UP;
-  if ( digitalRead(PIN_JOY1_2) == LOW ) j2 |= MASK_JOY2_DOWN;
-  if ( digitalRead(PIN_JOY1_3) == LOW ) j2 |= MASK_JOY2_RIGHT;
-  if ( digitalRead(PIN_JOY1_4) == LOW ) j2 |= MASK_JOY2_LEFT;
-  if ( digitalRead(PIN_JOY1_BTN) == LOW ) j2 |= MASK_JOY2_BTN;
-
-  if (joySwapped) {
-    retval = ((j1 << 8) | j2);
-  }
-  else {
-    retval = ((j2 << 8) | j1);
-  }
-  
-  if ( digitalRead(PIN_KEY_USER1) == LOW ) retval |= MASK_KEY_USER1;
-  if ( digitalRead(PIN_KEY_USER2) == LOW ) retval |= MASK_KEY_USER2;
-  if ( digitalRead(PIN_KEY_USER3) == LOW ) retval |= MASK_KEY_USER3;
-  if ( digitalRead(PIN_KEY_USER4) == LOW ) retval |= MASK_KEY_USER4;
-
-  return (retval);
+  return arcada.readButtons();
 }
-
-int emu_ReadI2CKeyboard(void) {
-  int retval=0;
-#ifdef HAS_I2CKBD
-  if (i2cKeyboardPresent) {
-    byte msg[5];
-    Wire2.requestFrom(8, 5);    // request 5 bytes from slave device #8 
-    int i = 0;
-    int hitindex=-1;
-    while (Wire2.available() && (i<5) ) { // slave may send less than requested
-      byte b = Wire2.read(); // receive a byte
-      if (b != 0xff) hitindex=i; 
-      msg[i++] = b;        
-    }
-    
-    if (hitindex >=0 ) {
-      /*
-      Serial.println(msg[0], BIN);
-      Serial.println(msg[1], BIN);
-      Serial.println(msg[2], BIN);
-      Serial.println(msg[3], BIN);
-      Serial.println(msg[4], BIN);
-      Serial.println("");
-      Serial.println("");
-      Serial.println("");
-      */
-      unsigned short match = (~msg[hitindex])&0x00FF | (hitindex<<8);
-      //Serial.println(match,HEX);  
-      for (i=0; i<sizeof(i2ckeys); i++) {
-        if (match == i2ckeys[i]) {
-          //Serial.println((int)keys[i]);      
-          return (keys[i]);
-        }
-      }
-    }    
-  }
-#endif
-  return(retval);
-}
-
-void emu_InitJoysticks(void) {    
-  pinMode(PIN_JOY1_1, INPUT_PULLUP);
-  pinMode(PIN_JOY1_2, INPUT_PULLUP);
-  pinMode(PIN_JOY1_3, INPUT_PULLUP);
-  pinMode(PIN_JOY1_4, INPUT_PULLUP);
-  pinMode(PIN_JOY1_BTN, INPUT_PULLUP);
-
-  pinMode(PIN_KEY_USER1, INPUT_PULLUP);
-  pinMode(PIN_KEY_USER2, INPUT_PULLUP);
-  pinMode(PIN_KEY_USER3, INPUT_PULLUP);
-  pinMode(PIN_KEY_USER4, INPUT_PULLUP);
-  pinMode(PIN_KEY_ESCAPE, INPUT_PULLUP);
-  pinMode(PIN_JOY2_BTN, INPUT_PULLUP);
-  analogReadResolution(12);
-  xRef=0; yRef=0;
-  for (int i=0; i<10; i++) {
-    xRef += analogRead(PIN_JOY2_A1X);
-    yRef += analogRead(PIN_JOY2_A2Y);  
-    delay(20);
-  }
-
-#if INVX
-  xRef = 4095 -xRef/10;
-#else
-  xRef /= 10;
-#endif
-#if INVY
-  yRef = 4095 -yRef/10;
-#else
-  yRef /= 10;
-#endif   
-}
-
 
 
 static bool vkbKeepOn = false;
