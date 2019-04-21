@@ -235,11 +235,6 @@ void emu_DrawVsync(void)
   skip += 1;
   skip &= VID_FRAME_SKIP;
 
-#if defined(__SAMD51__)
-  digitalWrite(FRAME_LED, HIGH);
-  //tft.writeScreenNoDma(tft.getFrameBuffer());
-  digitalWrite(FRAME_LED, LOW);
-#endif
   if (!vgaMode) {
     while (vbl==vb) {};
   }

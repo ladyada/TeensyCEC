@@ -7,6 +7,7 @@
 
 
 #include <Adafruit_ILI9341.h>
+#include <Adafruit_ZeroDMA.h>
 
 #ifdef __cplusplus
 #include <Arduino.h>
@@ -69,10 +70,12 @@ class ILI9341_t3DMA
 	  void writeScreen(const uint16_t *pcolors);
 	  void drawPixel(int16_t x, int16_t y, uint16_t color);
 	  uint16_t getPixel(int16_t x, int16_t y);
-	
+
+    void dmaFrame(void); // End DMA-issued frame and start a new one
+
   protected:
     Adafruit_ILI9341 _tft;
-  
+
     int8_t _rst, _cs, _dc;
     const uint16_t max_screen_width = ILI9341_TFTWIDTH-1;
     const uint16_t max_screen_height = ILI9341_TFTHEIGHT-1;	

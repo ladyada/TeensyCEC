@@ -16,6 +16,7 @@
 #include "font8x8.h"
 #include "iopins.h"
 
+// Actually 50 MHz due to timer shenanigans below, but SPI lib still thinks it's 24 MHz
 #define SPICLOCK 24000000
 
 Adafruit_ZeroDMA dma;                  ///< DMA instance
@@ -29,10 +30,16 @@ volatile uint8_t rstop = 0;
 volatile bool cancelled = false;
 volatile uint8_t ntransfer = 0;
 
+ILI9341_t3DMA *foo; // Pointer into class so callback can access stuff
+
 // DMA transfer-in-progress indicator and callback
 static volatile bool dma_busy = false;
 static void dma_callback(Adafruit_ZeroDMA *_dma) {
   dma_busy = false;
+  foo->dmaFrame();
+}
+
+void ILI9341_t3DMA::dmaFrame(void) {
   ntransfer++;
   if (ntransfer >= SCREEN_DMA_NUM_SETTINGS) {   
     ntransfer = 0;
@@ -40,10 +47,48 @@ static void dma_callback(Adafruit_ZeroDMA *_dma) {
       rstop = 1;
     }
   }
-  dma.startJob();
-  dma_busy = true;
-}
 
+  digitalWrite(_dc, 0);
+  SPI.transfer(ILI9341_SLPOUT);
+  digitalWrite(_dc, 1);
+  digitalWrite(_cs, 1);
+  SPI.endTransaction();
+  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
+          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
+  cancelled = false;
+  
+  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+  digitalWrite(_cs, 0);
+  digitalWrite(_dc, 0);
+  SPI.transfer(ILI9341_RAMWR);
+  digitalWrite(_dc, 1);
+
+  int sercom_id_core, sercom_id_slow;
+  sercom_id_core = SERCOM7_GCLK_ID_CORE;
+  sercom_id_slow = SERCOM7_GCLK_ID_SLOW;
+
+  // Override SPI clock source to use 100 MHz peripheral clock (for 50 MHz SPI)
+  GCLK_PCHCTRL_Type pchctrl;
+
+  GCLK->PCHCTRL[sercom_id_core].bit.CHEN = 0;     // Disable timer
+  while(GCLK->PCHCTRL[sercom_id_core].bit.CHEN);  // Wait for disable
+  pchctrl.bit.GEN                        = 2;     // Use GENERIC_CLOCK_GENERATOR_100M defined in startup.c
+  pchctrl.bit.CHEN                       = 1;
+  GCLK->PCHCTRL[sercom_id_core].reg      = pchctrl.reg;
+  while(!GCLK->PCHCTRL[sercom_id_core].bit.CHEN); // Wait for enable
+
+  GCLK->PCHCTRL[sercom_id_slow].bit.CHEN = 0;     // Disable timer
+  while(GCLK->PCHCTRL[sercom_id_slow].bit.CHEN);  // Wait for disable
+  pchctrl.bit.GEN                        = 2;     // Use GENERIC_CLOCK_GENERATOR_100M defined in startup.c
+  pchctrl.bit.CHEN                       = 1;
+  GCLK->PCHCTRL[sercom_id_slow].reg      = pchctrl.reg;
+  while(!GCLK->PCHCTRL[sercom_id_slow].bit.CHEN); // Wait for enable
+
+  dma_busy = true;
+  dma.startJob(); // Trigger next SPI DMA transfer
+}
 
 
 
@@ -187,9 +232,13 @@ void ILI9341_t3DMA::refresh(void) {
   // Move new descriptor into place...
   memcpy(dptr, &descriptor[0], sizeof(DmacDescriptor));
   dma_busy = true;
+  foo = this; // Save pointer to ourselves so callback (outside class) can reach members
   dma.setCallback(dma_callback);
 
-  setArea(0, 0, EMUDISPLAY_TFTWIDTH-1, EMUDISPLAY_TFTHEIGHT-1);
+  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
+          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
   cancelled = false; 
   
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
@@ -197,10 +246,9 @@ void ILI9341_t3DMA::refresh(void) {
   digitalWrite(_dc, 0);
   SPI.transfer(ILI9341_RAMWR);
   digitalWrite(_dc, 1);
-  
-  Serial.print("DMA kick");
-  dma.startJob();                // Trigger SPI DMA transfer
 
+  Serial.print("DMA kick");
+  dma.startJob();                // Trigger first SPI DMA transfer
 }
 
 
@@ -249,7 +297,10 @@ void ILI9341_t3DMA::fillScreenNoDma(uint16_t color) {
 
 
 void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
-  setArea(0, 0, EMUDISPLAY_TFTWIDTH-1, EMUDISPLAY_TFTHEIGHT-1);  
+  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
+          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
   
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
   digitalWrite(_cs, 0);
@@ -347,7 +398,10 @@ void ILI9341_t3DMA::drawSpriteNoDma(int16_t x, int16_t y, const uint16_t *bitmap
   digitalWrite(_dc, 1);
   digitalWrite(_cs, 1);
   SPI.endTransaction();   
-  setArea(0, 0, EMUDISPLAY_TFTWIDTH-1, ILI9341_TFTHEIGHT-1);  
+  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
+          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
+          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
 }
 
 void ILI9341_t3DMA::drawTextNoDma(int16_t x, int16_t y, const char * text, uint16_t fgcolor, uint16_t bgcolor, bool doublesize) {
