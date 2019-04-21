@@ -1,5 +1,6 @@
 #ifndef EMUAPI_H
 #define EMUAPI_H
+#include <stdint.h>
 
 #define INVX        1
 //#define INVY        1
@@ -9,12 +10,9 @@
 //#define TIMER_REND  1
 
 
-//#define UVGA_SUPPORT   // Include uVGA output support?
-//#define TOUCHSCREEN_SUPPORT  // use TFT touchscreen?
-
 // Title:     <                                        >
 #define TITLE "               NES Emulator             "
-#define ROMSDIR "nes"
+#define ROMSDIR "/nes"
 
 #define emu_Init(ROM) {nes_Start(ROM); nes_Init(); }
 #define emu_Step(x) { nes_Step(); }
@@ -79,14 +77,8 @@ extern void emu_DrawVsync(void);
 extern int emu_FrameSkip(void);
 extern void * emu_LineBuffer(int line);
 
-extern void emu_InitJoysticks(void);
-extern int emu_SwapJoysticks(int statusOnly);
-extern unsigned short emu_DebounceLocalKeys(void);
-extern int emu_ReadKeys(void);
-extern int emu_GetPad(void);
-extern int emu_ReadAnalogJoyX(int min, int max);
-extern int emu_ReadAnalogJoyY(int min, int max);
-extern int emu_ReadI2CKeyboard(void);
+extern uint16_t emu_DebounceLocalKeys(void);
+extern uint32_t emu_ReadKeys(void);
 extern void emu_sndPlaySound(int chan, int volume, int freq);
 extern void emu_sndPlayBuzz(int size, int val);
 extern void emu_sndInit();

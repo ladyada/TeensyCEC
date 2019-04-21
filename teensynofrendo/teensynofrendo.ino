@@ -86,11 +86,27 @@ static void vblCount() {
 // the setup() method runs once, when the sketch starts
 // ****************************************************
 void setup() {
+  Serial.begin(115200);
   while (!Serial);
   delay(100);
   Serial.println("-----------------------------");
 
-  arcada.begin();
+
+  if (!arcada.begin()) {
+    Serial.println("Couldn't init arcada");
+    while (1);
+  }
+  if (!arcada.filesysBegin()) {
+    Serial.println("Filesystem failed");
+    while (1);
+  }
+  if (!arcada.filesysCWD("/nes")) {
+    Serial.println("Change to /nes ROMs folder failed");
+    while (1);
+  }
+
+  Serial.printf("Filesys & ROM folder initialized, %d files found", arcada.filesysListFiles());
+
   tft.begin();
   tft.flipscreen(true);  
   tft.start();

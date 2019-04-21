@@ -1,5 +1,5 @@
-#include "ili9341_samd51.h"
 #include <Adafruit_Arcada.h>
+#include "ili9341_samd51.h"
 extern Adafruit_Arcada arcada;
 
 
@@ -45,31 +45,6 @@ static int topFile=0;
 static char selection[MAX_FILENAME_SIZE+1]="";
 static uint8_t prev_zt=0; 
 
-static int readNbFiles(void) {
-  int totalFiles = 0;
-  char filename[MAX_FILENAME_SIZE+1];
-  File entry;  
-  file = arcada.open(romspath);
-  while (true) {
-    entry = file.openNextFile();
-    if (! entry) {
-      // no more files
-      break;
-    }
-    if (!entry.isDirectory())  {
-      totalFiles++;
-    }
-    else {
-      entry.getName(&filename[0], MAX_FILENAME_SIZE); 
-      if ( (strcmp(filename,".")) && (strcmp(filename,"..")) ) {
-        totalFiles++;
-      }
-    }  
-    entry.close();
-  }
-  file.close();
-  return totalFiles;  
-}
 
 
 void toggleMenu(bool on) {
@@ -93,20 +68,13 @@ bool menuActive(void)
 int handleMenu(uint16_t bClick)
 {
   int action = ACTION_NONE;
-
-  char newpath[80];
-  strcpy(newpath, romspath);
-  strcat(newpath, "/");
-  strcat(newpath, selection);
-  File entry = arcada.open(newpath);
-
-  char c = 255;
+  File entry = arcada.open(selection);
 
   if ( (bClick & ARCADA_BUTTONMASK_A)  && (entry.isDirectory()) ) {
       menuRedraw=true;
-      strcpy(romspath,newpath);
+      arcada.filesysCWD(selection);
       curFile = 0;
-      nbFiles = readNbFiles();     
+      nbFiles = arcada.filesysListFiles();     
   }
   else if (bClick & ARCADA_BUTTONMASK_START) {
       menuRedraw=true;
@@ -124,7 +92,8 @@ int handleMenu(uint16_t bClick)
       menuRedraw=true;
     }
   }
-    
+  entry.close();
+  
   if (menuRedraw && nbFiles) {
          
     int fileIndex = 0;
@@ -175,33 +144,14 @@ int handleMenu(uint16_t bClick)
   return (action);  
 }
 
-char * menuSelection(void)
-{
+char * menuSelection(void) {
   return (selection);  
 }
-  
 
- 
 
-void emu_init(void)
-{
-  Serial.begin(115200);
-  //while (!Serial) {}
-
-  if (!arcada.begin()) {
-    emu_printf("Couldn't init arcada");
-    while (1);
-  }
-  if (!arcada.filesysBegin()) {
-    emu_printf("Filesystem failed");
-    while (1);
-  }
+void emu_init(void) {
   strcpy(romspath,ROMSDIR);
-  nbFiles = readNbFiles(); 
-
-  Serial.print("SD initialized, files found: ");
-  Serial.println(nbFiles);
-
+  nbFiles = arcada.filesysListFiles();
   toggleMenu(true);
 }
 
@@ -221,116 +171,87 @@ void emu_printi(int val)
   Serial.println(val);
 }
 
-void * emu_Malloc(int size)
+void *emu_Malloc(int numbytes)
 {
-  void * retval =  malloc(size);
+  void *retval = malloc(numbytes);
   if (!retval) {
-    emu_printf("failed to allocate ");
-    emu_printf(size);
-  }
-  else {
-    emu_printf("could allocate ");
-    emu_printf(size);    
+    arcada.print("Failed to allocate "); arcada.print(numbytes); arcada.println(" bytes");
+  } else {
+    arcada.print("Successfully allocated "); arcada.print(numbytes); arcada.println(" bytes");
   }
   
   return retval;
 }
 
-void emu_Free(void * pt)
-{
+void emu_Free(void * pt) {
   free(pt);
 }
 
 int emu_FileOpen(char * filename)
 {
-  int retval = 0;
-
-  char filepath[80];
-  strcpy(filepath, romspath);
-  strcat(filepath, "/");
-  strcat(filepath, filename);
-  emu_printf("FileOpen...");
-  emu_printf(filepath);
-  
-  if (file.open(filepath, O_READ)) {
-    retval = 1;  
+  arcada.print("Opening ");  arcada.println(filename);
+  file.close();
+  file = arcada.open(filename);
+  if (file) {
+    arcada.println("...Success!");
+    return 1;  
   }
-  else {
-    emu_printf("FileOpen failed");
-  }
-  return (retval);
+  arcada.println("...Failed");
+  return 0;  
 }
 
 int emu_FileRead(char * buf, int size)
 {
   int retval = file.read(buf, size);
   if (retval != size) {
-    emu_printf("FileRead failed");
+    arcada.println("File Read failed");
   }
-  return (retval);     
+  return retval;     
 }
 
 unsigned char emu_FileGetc(void) {
   unsigned char c;
   int retval = file.read(&c, 1);
   if (retval != 1) {
-    emu_printf("emu_FileGetc failed");
+    arcada.println("File Getc failed\n");
   }  
   return c; 
 }
 
 
-void emu_FileClose(void)
-{
+void emu_FileClose(void) {
   file.close();  
 }
 
-int emu_FileSize(char * filename) 
-{
-  int filesize=0;
-  char filepath[80];
-  strcpy(filepath, romspath);
-  strcat(filepath, "/");
-  strcat(filepath, filename);
-  emu_printf("FileSize...");
-  emu_printf(filepath);
-
-  if (file.open(filepath, O_READ)) 
-  {
-    emu_printf("filesize is...");
-    filesize = file.fileSize(); 
-    emu_printf(filesize);
-    file.close();    
+int emu_FileSize(char * filename) {
+  int filesize = 0;
+  File f = arcada.open(filename);
+  if (f) {
+    filesize = f.fileSize();
+    arcada.print("File is "); arcada.print(filesize); arcada.println(" bytes");
+    f.close();
   }
- 
   return(filesize);  
 }
 
-int emu_FileSeek(int seek) 
-{
-  file.seek(seek);
-  return (seek);
+int emu_FileSeek(int pos) {
+  file.seek(pos);
+  return pos;
 }
 
 int emu_LoadFile(char * filename, char * buf, int size)
 {
   int filesize = 0;
-    
-  char filepath[80];
-  strcpy(filepath, romspath);
-  strcat(filepath, "/");
-  strcat(filepath, filename);
-  emu_printf("LoadFile...");
-  emu_printf(filepath);
+
+  arcada.print("LoadFile..."); arcada.print(filename); arcada.print(" : ");
+  file.close();
   
-  if (file.open(filepath, O_READ)) 
-  {
+  if (file = arcada.open(filename)) {
     filesize = file.fileSize(); 
-    emu_printf(filesize);
-    if (size >= filesize)
-    {
+    arcada.print(filesize); arcada.println(" bytes");
+    if (size >= filesize) {
       if (file.read(buf, filesize) != filesize) {
-        emu_printf("File read failed");
+        arcada.println("File read failed!");
       }        
     }
     file.close();
@@ -342,20 +263,15 @@ int emu_LoadFile(char * filename, char * buf, int size)
 int emu_LoadFileSeek(char * filename, char * buf, int size, int seek)
 {
   int filesize = 0;
-    
-  char filepath[80];
-  strcpy(filepath, romspath);
-  strcat(filepath, "/");
-  strcat(filepath, filename);
-  emu_printf("LoadFileSeek...");
-  emu_printf(filepath);
+
+  arcada.print("LoadFileSeek..."); arcada.print(filename); arcada.print(" : ");
+  file.close();
   
-  if (file.open(filepath, O_READ)) 
-  {
+  if (file = arcada.open(filename)) {
     file.seek(seek);
-    emu_printf(size);
+    arcada.print(size); arcada.println(" bytes");
     if (file.read(buf, size) != size) {
-      emu_printf("File read failed");
+      arcada.println("File read failed!");
     }        
     file.close();
   }
@@ -363,11 +279,8 @@ int emu_LoadFileSeek(char * filename, char * buf, int size, int seek)
   return(filesize);
 }
 
-static int keypadval=0; 
-static boolean joySwapped = false;
 static uint16_t bLastState;
-
-unsigned short emu_DebounceLocalKeys(void)
+uint16_t emu_DebounceLocalKeys(void)
 {
   uint16_t bCurState = arcada.readButtons();
 
@@ -377,12 +290,7 @@ unsigned short emu_DebounceLocalKeys(void)
   return (bClick);
 }
 
-int emu_GetPad(void) 
-{
-  return(keypadval|((joySwapped?1:0)<<7));
-}
-
-int emu_ReadKeys(void) 
+uint32_t emu_ReadKeys(void) 
 {
   return arcada.readButtons();
 }
