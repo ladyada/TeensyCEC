@@ -16,26 +16,21 @@ bool vgaMode = false;
 
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
-#if defined(TEENSYDUINO)
-  static IntervalTimer myTimer;
-  #include <elapsedMillis.h>
-  static elapsedMicros tius;
-  #define TIMER_LED 01
-#elif defined(__SAMD51__)
-  #include "Adafruit_ZeroTimer.h"
-  #define MY_TIMER_TC 5
-  #define TIMER_LED 22
-  #define FRAME_LED 23
-  Adafruit_ZeroTimer myTimer = Adafruit_ZeroTimer(MY_TIMER_TC);
 
-  void TC5_Handler(){  // change this to match TC #
-    Adafruit_ZeroTimer::timerHandler(MY_TIMER_TC);
-  }
-  void Timer5Callback()
-  {
-    vblCount();
-  }
-#endif
+#include "Adafruit_ZeroTimer.h"
+#define MY_TIMER_TC 5
+#define TIMER_LED 22
+#define FRAME_LED 23
+Adafruit_ZeroTimer myTimer = Adafruit_ZeroTimer(MY_TIMER_TC);
+
+void TC5_Handler(){  // change this to match TC #
+  Adafruit_ZeroTimer::timerHandler(MY_TIMER_TC);
+}
+void Timer5Callback()
+{
+  vblCount();
+}
+
 
 volatile boolean vbl=true;
 static int skip=0;
@@ -75,9 +70,7 @@ static void main_step() {
     delay(20);
   }
   else {
-    if ( (!virtualkeyboardIsActive()) || (vgaMode) ) {
       emu_Step();
-    }
   }
 }
 
