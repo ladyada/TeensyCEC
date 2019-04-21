@@ -49,16 +49,16 @@
   #define PIN_JOY1_2       24
   #define PIN_JOY1_3       25
   #define PIN_JOY1_4       26
+  #define PIN_JOY2_BTN     27
+  #define PIN_KEY_ESCAPE   32
   
   // Analog joystick for JOY2 and 5 extra buttons
   #define PIN_JOY2_A1X    A8
   #define PIN_JOY2_A2Y    A9
-  #define PIN_JOY2_BTN    27
   #define PIN_KEY_USER1   A10
-  #define PIN_KEY_USER2   29
-  #define PIN_KEY_USER3   30
-  #define PIN_KEY_USER4   31
-  #define PIN_KEY_ESCAPE  32
+  #define PIN_KEY_USER2   A11
+  #define PIN_KEY_USER3   A12
+  #define PIN_KEY_USER4   A13
 
 #endif
 

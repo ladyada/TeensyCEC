@@ -555,7 +555,7 @@ void * emu_Malloc(int size)
 {
   void * retval =  malloc(size);
   if (!retval) {
-    emu_printf("failled to allocate ");
+    emu_printf("failed to allocate ");
     emu_printf(size);
   }
   else {

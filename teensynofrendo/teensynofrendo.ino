@@ -174,7 +174,7 @@ static void vblCount() {
 // the setup() method runs once, when the sketch starts
 // ****************************************************
 void setup() {
-  //while (!Serial);
+  while (!Serial);
   delay(100);
   Serial.println("-----------------------------");
   
