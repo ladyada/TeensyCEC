@@ -100,7 +100,7 @@
 class ILI9341_t3DMA
 {
   public:
-  	ILI9341_t3DMA(uint8_t _CS, uint8_t _DC, uint8_t _RST = 255);
+  	ILI9341_t3DMA(int8_t _CS, int8_t _DC, int8_t _RST = 255);
 
 	  void setFrameBuffer(uint16_t * fb);
 	  static uint16_t * getFrameBuffer(void);
@@ -130,14 +130,10 @@ class ILI9341_t3DMA
 	  uint16_t getPixel(int16_t x, int16_t y);
 	
   protected:
-    uint8_t _rst, _cs, _dc;
-	  uint8_t _miso, _mosi, _sclk;
-    uint8_t _touch_irq, _touch_cs;
+    int8_t _rst, _cs, _dc;
     const uint16_t max_screen_width = ILI9341_TFTWIDTH-1;
     const uint16_t max_screen_height = ILI9341_TFTHEIGHT-1;	
 	  bool flipped=false;
-
-	  void enableTouchIrq();
 };
 
 #endif

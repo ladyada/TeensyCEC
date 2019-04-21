@@ -26,7 +26,7 @@ extern ILI9341_t3DMA tft;
 #ifdef TEENSYDUINO
   static SdFatSdio sd;
 #else
-  static SdFat sd;
+  static SdFat sd(&SD_SPI_PORT);
 #endif
 static File file;
 static char romspath[64];
@@ -504,7 +504,7 @@ void emu_init(void)
   Serial.begin(115200);
   //while (!Serial) {}
 
-  if (!sd.begin()) {
+  if (!sd.begin(SD_CS)) {
     emu_printf("SdFat.begin() failed");
   }
   strcpy(romspath,ROMSDIR);
@@ -536,9 +536,12 @@ void emu_init(void)
 }
 
 
-void emu_printf(const char * format)
+void emu_printf(const char * format, ...)
 {
-  Serial.println(format);
+  va_list args;
+  va_start(args, format);
+  Serial.printf(format, args);
+  va_end(args);
 }
 
 void emu_printf(int val)
@@ -710,6 +713,7 @@ int emu_ReadAnalogJoyX(int min, int max)
   val = ((val*140)/100);
   if ( (val > -512) && (val < 512) ) val = 0;
   val = val+2048;
+  //Serial.print("X: "); Serial.println(val);
   return (val*(max-min))/4096;
 }
 
@@ -725,6 +729,7 @@ int emu_ReadAnalogJoyY(int min, int max)
   //val = (val*(max-min))/4096;
   val = val+2048;
   //return val+(max-min)/2;
+  //Serial.print("Y: "); Serial.println(val);
   return (val*(max-min))/4096;
 }
 

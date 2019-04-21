@@ -8,7 +8,6 @@
 
 #define SPICLOCK 8000000
 
-
 #ifdef DMA_FULL
 //static DMAMEM uint16_t dmascreen[ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH+ILI9341_VIDEOMEMSPARE];
 static uint16_t * screen=NULL; //=dmascreen;
@@ -105,7 +104,7 @@ static void setDmaStruct() {
 }
 
 
-ILI9341_t3DMA::ILI9341_t3DMA(uint8_t cs, uint8_t dc, uint8_t rst)
+ILI9341_t3DMA::ILI9341_t3DMA(int8_t cs, int8_t dc, int8_t rst)
 {
   _cs   = cs;
   _dc   = dc;
@@ -153,7 +152,7 @@ void ILI9341_t3DMA::begin(void) {
   SPI.begin();
       
   // Initialize display
-  if (_rst < 255) { // toggle RST low to reset
+  if (_rst >= 0) { // toggle RST low to reset
     pinMode(_rst, OUTPUT);
     digitalWrite(_rst, HIGH);
     delay(5);
@@ -240,6 +239,7 @@ boolean ILI9341_t3DMA::isflipped(void)
   
 
 void ILI9341_t3DMA::start(void) {
+  Serial.println("DMA start");
   /*
   uint16_t centerdx = (ILI9341_TFTREALWIDTH - max_screen_width)/2;
   uint16_t centerdy = (ILI9341_TFTREALHEIGHT - max_screen_height)/2;
@@ -253,6 +253,8 @@ void ILI9341_t3DMA::start(void) {
 
 
 void ILI9341_t3DMA::refresh(void) {
+  Serial.println("DMA refresh");
+
 /*
 #ifdef DMA_FULL
   if (screen != NULL) {
@@ -272,6 +274,8 @@ void ILI9341_t3DMA::refresh(void) {
 
 
 void ILI9341_t3DMA::stop(void) {
+  Serial.println("DMA stop");
+
 /*
   rstop = 0;
   wait();
@@ -285,6 +289,8 @@ void ILI9341_t3DMA::stop(void) {
 }
 
 void ILI9341_t3DMA::wait(void) {
+  Serial.println("DMA wait");
+
 /*
   rstop = 1;
   unsigned long m = millis(); 
@@ -300,6 +306,8 @@ void ILI9341_t3DMA::wait(void) {
 
 uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
 { 
+  Serial.println("get linebuf");
+
   return(&screen[j*ILI9341_TFTREALWIDTH]);
 }
 

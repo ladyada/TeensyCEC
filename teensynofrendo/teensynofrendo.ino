@@ -60,10 +60,24 @@ ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, T
 #endif
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
-#ifdef TEENSYDUINO
+#if defined(TEENSYDUINO)
   static IntervalTimer myTimer;
   #include <elapsedMillis.h>
   static elapsedMicros tius;
+  #define TIMER_LED 01
+#elif defined(__SAMD51__)
+  #include "Adafruit_ZeroTimer.h"
+  #define MY_TIMER_TC 5
+  #define TIMER_LED 22
+  Adafruit_ZeroTimer myTimer = Adafruit_ZeroTimer(MY_TIMER_TC);
+
+  void TC5_Handler(){  // change this to match TC #
+    Adafruit_ZeroTimer::timerHandler(MY_TIMER_TC);
+  }
+  void Timer5Callback()
+  {
+    vblCount();
+  }
 #endif
 
 volatile boolean vbl=true;
@@ -147,7 +161,11 @@ static void main_step() {
   //tius=0;  
 }
 
+volatile bool val;
 static void vblCount() { 
+  digitalWrite(TIMER_LED, val);
+  val = !val;
+  
   if (vbl) {
     vbl = false;
   } else {
@@ -162,19 +180,34 @@ static void vblCount() {
 // the setup() method runs once, when the sketch starts
 // ****************************************************
 void setup() {
+
+  while (!Serial);
+  delay(100);
+  Serial.println("-----------------------------");
+  
   tft.begin();
   tft.flipscreen(true);  
   tft.start();
 
   emu_init();  
 
-#ifdef TEENSYDUINO
+#if defined(TEENSYDUINO)
   #ifdef TIMER_REND
     myTimer.begin(vblCount, 10000);  //to run every 10ms
   #else
     myTimer.begin(vblCount, 5000);  // will try to VSYNC next at 5ms
-  #endif    
+  #endif
+#elif defined(__SAMD51__)
+  myTimer.configure(TC_CLOCK_PRESCALER_DIV4, // prescaler
+                TC_COUNTER_SIZE_16BIT,   // bit width of timer/counter
+                TC_WAVE_GENERATION_MATCH_PWM // frequency or PWM mode
+                );
+
+  myTimer.setCompare(0, 48000000/4/200);  // 48mhz clock, div 4, div 200 hz -> 5 ms vsync
+  myTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, Timer5Callback);
+  myTimer.enable(true);
 #endif
+  pinMode(TIMER_LED, OUTPUT);
 }
 
 
