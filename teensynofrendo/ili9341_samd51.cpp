@@ -306,8 +306,6 @@ void ILI9341_t3DMA::wait(void) {
 
 uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
 { 
-  Serial.println("get linebuf");
-
   return(&screen[j*ILI9341_TFTREALWIDTH]);
 }
 
@@ -707,26 +705,6 @@ void ILI9341_t3DMA::writeLine(int width, int height, int stride, uint8_t *buf, u
     uint8_t val = *src++;
     *dst++=palette16[val];
   }
-  /*
-  uint8_t *src; 
-  uint16_t *dst = &screen[0];
-  int i,j;
-  if (width <= ILI9341_TFTWIDTH) {
-    dst += (ILI9341_TFTWIDTH-width)/2;
-    for (j=0; j<height; j++)
-    {
-      src=buffer;
-      for (i=0; i<width/2; i++)
-      {
-        uint8_t val = *src++;
-        *dst++=palette16[val>>4];
-        *dst++=palette16[val&0xf];        
-      }
-      dst += (ILI9341_TFTWIDTH-width);
-      buffer += stride;  
-    }
-  }
-  */
 }
 
 

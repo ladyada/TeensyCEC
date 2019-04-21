@@ -536,12 +536,9 @@ void emu_init(void)
 }
 
 
-void emu_printf(const char * format, ...)
+void emu_printf(const char * format)
 {
-  va_list args;
-  va_start(args, format);
-  Serial.printf(format, args);
-  va_end(args);
+  Serial.println(format);
 }
 
 void emu_printf(int val)

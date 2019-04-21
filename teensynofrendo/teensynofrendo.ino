@@ -152,7 +152,7 @@ static void main_step() {
 #ifdef TOUCHSCREEN_SUPPORT
     handleVirtualkeyboard();
 #endif
-    if ( (!virtualkeyboardIsActive()) || (vgaMode) ) {     
+    if ( (!virtualkeyboardIsActive()) || (vgaMode) ) {
       emu_Step();
     }
   }
@@ -161,10 +161,8 @@ static void main_step() {
   //tius=0;  
 }
 
-volatile bool val;
 static void vblCount() { 
-  digitalWrite(TIMER_LED, val);
-  val = !val;
+  digitalWrite(TIMER_LED, vbl);
   
   if (vbl) {
     vbl = false;
@@ -198,7 +196,7 @@ void setup() {
     myTimer.begin(vblCount, 5000);  // will try to VSYNC next at 5ms
   #endif
 #elif defined(__SAMD51__)
-  myTimer.configure(TC_CLOCK_PRESCALER_DIV4, // prescaler
+  myTimer.configure(TC_CLOCK_PRESCALER_DIV16, // prescaler
                 TC_COUNTER_SIZE_16BIT,   // bit width of timer/counter
                 TC_WAVE_GENERATION_MATCH_PWM // frequency or PWM mode
                 );
@@ -236,6 +234,10 @@ void emu_DrawVsync(void)
   volatile boolean vb=vbl;
   skip += 1;
   skip &= VID_FRAME_SKIP;
+
+#if defined(__SAMD51__)
+  tft.writeScreenNoDma(tft.getFrameBuffer());
+#endif
   if (!vgaMode) {
     while (vbl==vb) {};
   }
