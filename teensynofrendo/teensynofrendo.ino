@@ -164,12 +164,7 @@ static void main_step() {
 
 static void vblCount() { 
   digitalWrite(TIMER_LED, vbl);
-  
-  if (vbl) {
-    vbl = false;
-  } else {
-    vbl = true;
-  }
+  vbl = !vbl;
 #ifdef TIMER_REND
   main_step();
 #endif
@@ -179,8 +174,7 @@ static void vblCount() {
 // the setup() method runs once, when the sketch starts
 // ****************************************************
 void setup() {
-
-  while (!Serial);
+  //while (!Serial);
   delay(100);
   Serial.println("-----------------------------");
   
@@ -230,8 +224,8 @@ void emu_SetPaletteEntry(unsigned char r, unsigned char g, unsigned char b, int 
 {
   if (index<PALETTE_SIZE) {
     //Serial.println("%d: %d %d %d\n", index, r,g,b);
-    palette8[index]  = RGBVAL8(r,g,b);
-    palette16[index] = RGBVAL16(r,g,b);    
+    palette8[index]  = __builtin_bswap16(RGBVAL8(r,g,b));
+    palette16[index] = __builtin_bswap16(RGBVAL16(r,g,b));
   }
 }
 
@@ -243,7 +237,7 @@ void emu_DrawVsync(void)
 
 #if defined(__SAMD51__)
   digitalWrite(FRAME_LED, HIGH);
-  tft.writeScreenNoDma(tft.getFrameBuffer());
+  //tft.writeScreenNoDma(tft.getFrameBuffer());
   digitalWrite(FRAME_LED, LOW);
 #endif
   if (!vgaMode) {
