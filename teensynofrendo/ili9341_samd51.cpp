@@ -109,7 +109,7 @@ static bool setDmaStruct() {
     descriptor[d].BTCTRL.bit.BEATSIZE =
       DMA_BEAT_SIZE_BYTE;
     descriptor[d].BTCTRL.bit.DSTINC   = 0;
-    descriptor[d].BTCTRL.bit.SRCINC = 1;
+    descriptor[d].BTCTRL.bit.SRCINC   = 1;
     descriptor[d].BTCTRL.bit.STEPSEL  =
       DMA_STEPSEL_SRC;
     descriptor[d].BTCTRL.bit.STEPSIZE =
@@ -117,11 +117,11 @@ static bool setDmaStruct() {
     descriptor[d].BTCNT.reg   = descriptor_bytes;
     descriptor[d].DSTADDR.reg = (uint32_t)data_reg;
     // WARNING SRCADDRs MUST BE SET ELSEWHERE!
-    if (d == numDescriptors-1) {
+    //if (d == numDescriptors-1) {
       descriptor[d].DESCADDR.reg = 0;
-    } else {
-      descriptor[d].DESCADDR.reg = (uint32_t)&descriptor[d+1];
-    }
+    //} else {
+    //  descriptor[d].DESCADDR.reg = (uint32_t)&descriptor[d+1];
+   // }
   }
   return true;
 }
@@ -159,7 +159,7 @@ void ILI9341_t3DMA::begin(void) {
     Serial.println("Failed to set up DMA");
   }
 
-  dma.setCallback(dma_callback);
+  //dma.setCallback(dma_callback);
   //dma_cancelled = false; 
 #ifdef FLIP_SCREEN          
   _tft.setRotation(1);
@@ -273,17 +273,22 @@ void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
   // Move new descriptor into place...
   memcpy(dptr, &descriptor[0], sizeof(DmacDescriptor));
   dma_busy = true;
+/*
   Serial.print("DMA kick");
   dma.startJob();                // Trigger SPI DMA transfer
   while (dma_busy) {
-    Serial.print(".");
-  }
-   /*        
-  for (int j=0; j<240*EMUDISPLAY_TFTWIDTH; j++)
-  {
-      SPI.transfer16(*pcolors++);     
+    Serial.print("."); delay(10);
   }
   */
+           
+  for (int j=0; j<240*EMUDISPLAY_TFTWIDTH; j++) {
+    uint16_t color = *pcolors++;
+    SERCOM7->SPI.DATA.bit.DATA = color >> 8; // Writing data into Data register
+    while( SERCOM7->SPI.INTFLAG.bit.TXC == 0 ); // Waiting Complete Reception
+    SERCOM7->SPI.DATA.bit.DATA = color & 0xFF; // Writing data into Data register
+    while( SERCOM7->SPI.INTFLAG.bit.TXC == 0 ); // Waiting Complete Reception
+  }
+  
   Serial.print("DMA done");
   digitalWrite(_dc, 0);
   SPI.transfer(ILI9341_SLPOUT);
