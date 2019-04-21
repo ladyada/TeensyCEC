@@ -115,26 +115,8 @@ uint16_t * ILI9341_t3DMA::getFrameBuffer(void) {
 }
 
 void ILI9341_t3DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  digitalWrite(_cs, 0);
-
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_CASET);
-  digitalWrite(_dc, 1);
-  SPI.transfer16(x1);
-  SPI.transfer16(x2);
-
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_PASET);
-  digitalWrite(_dc, 1);
-  SPI.transfer16(y1);
-  SPI.transfer16(y2);
-
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_RAMWR);
-  digitalWrite(_dc, 1);
-  
-  digitalWrite(_cs, 1);
+  _tft.startWrite();
+  _tft.setAddrWindow(x1, y1, x2-x1+1, y2-y1+1);
 }
 
 
@@ -242,25 +224,20 @@ uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
  ***********************************************************************************************/
 void ILI9341_t3DMA::fillScreenNoDma(uint16_t color) {
   _tft.fillScreen(color);
-
-  setArea(0, 0, max_screen_width, max_screen_height);  
 }
 
 
 void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
-  setArea(0, 0, ILI9341_TFTWIDTH-1, ILI9341_TFTHEIGHT-1);  
+  setArea(0, 0, EMUDISPLAY_TFTWIDTH-1, EMUDISPLAY_TFTHEIGHT-1);  
   
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
   digitalWrite(_cs, 0);
   digitalWrite(_dc, 0);
   SPI.transfer(ILI9341_RAMWR);
   int i,j;
-  for (j=0; j<240; j++)
-  {
-    for (i=0; i<ILI9341_TFTWIDTH; i++) {
-      digitalWrite(_dc, 1);
+  digitalWrite(_dc, 1);
+  for (j=0; j<240*EMUDISPLAY_TFTWIDTH; j++) {
       SPI.transfer16(*pcolors++);     
-    }
   }
   digitalWrite(_dc, 0);
   SPI.transfer(ILI9341_SLPOUT);
@@ -343,7 +320,7 @@ void ILI9341_t3DMA::drawSpriteNoDma(int16_t x, int16_t y, const uint16_t *bitmap
   digitalWrite(_dc, 1);
   digitalWrite(_cs, 1);
   SPI.endTransaction();   
-  setArea(0, 0, ILI9341_TFTWIDTH-1, ILI9341_TFTREALHEIGHT-1);  
+  setArea(0, 0, EMUDISPLAY_TFTWIDTH-1, ILI9341_TFTHEIGHT-1);  
 }
 
 void ILI9341_t3DMA::drawTextNoDma(int16_t x, int16_t y, const char * text, uint16_t fgcolor, uint16_t bgcolor, bool doublesize) {
@@ -429,24 +406,7 @@ void ILI9341_t3DMA::drawTextNoDma(int16_t x, int16_t y, const char * text, uint1
 
 
 void ILI9341_t3DMA::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
-  setArea(x,y,x+w-1,y+h-1);
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  digitalWrite(_cs, 0);
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_RAMWR);
-  int i;
-  for (i=0; i<(w*h); i++)
-  {
-    digitalWrite(_dc, 1);
-    SPI.transfer16(color);
-  }
-  digitalWrite(_dc, 0);
-  SPI.transfer(ILI9341_SLPOUT);
-  digitalWrite(_dc, 1);
-  digitalWrite(_cs, 1);
-  SPI.endTransaction();  
-  
-  setArea(0, 0, max_screen_width, max_screen_height);
+  _tft.fillRect(x, y, w, h, color);
 }
 
 
@@ -458,9 +418,9 @@ void ILI9341_t3DMA::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, ui
 void ILI9341_t3DMA::fillScreen(uint16_t color) {
   int i,j;
   uint16_t *dst = &screen[0];
-  for (j=0; j<ILI9341_TFTHEIGHT; j++)
+  for (j=0; j<EMUDISPLAY_TFTHEIGHT; j++)
   {
-    for (i=0; i<ILI9341_TFTWIDTH; i++)
+    for (i=0; i<EMUDISPLAY_TFTWIDTH; i++)
     {
       *dst++ = color;
     }
@@ -475,7 +435,7 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
   if (screen != NULL) {
   uint16_t *dst = &screen[0];
     int i,j;
-    if (width*2 <= ILI9341_TFTWIDTH) {
+    if (width*2 <= EMUDISPLAY_TFTWIDTH) {
       for (j=0; j<height; j++)
       {
         src=buffer;
@@ -485,8 +445,8 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
           *dst++ = val;
           *dst++ = val;
         }
-        dst += (ILI9341_TFTWIDTH-width*2);
-        if (height*2 <= ILI9341_TFTHEIGHT) {
+        dst += (EMUDISPLAY_TFTWIDTH-width*2);
+        if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
           src=buffer;
           for (i=0; i<width; i++)
           {
@@ -494,13 +454,13 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
             *dst++ = val;
             *dst++ = val;
           }
-          dst += (ILI9341_TFTWIDTH-width*2);      
+          dst += (EMUDISPLAY_TFTWIDTH-width*2);      
         } 
         buffer += stride;      
       }
     }
-    else if (width <= ILI9341_TFTWIDTH) {
-      dst += (ILI9341_TFTWIDTH-width)/2;
+    else if (width <= EMUDISPLAY_TFTWIDTH) {
+      dst += (EMUDISPLAY_TFTWIDTH-width)/2;
       for (j=0; j<height; j++)
       {
         src=buffer;
@@ -509,15 +469,15 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
           uint16_t val = palette16[*src++];
           *dst++ = val;
         }
-        dst += (ILI9341_TFTWIDTH-width);
-        if (height*2 <= ILI9341_TFTHEIGHT) {
+        dst += (EMUDISPLAY_TFTWIDTH-width);
+        if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
           src=buffer;
           for (i=0; i<width; i++)
           {
             uint16_t val = palette16[*src++];
             *dst++ = val;
           }
-          dst += (ILI9341_TFTWIDTH-width);
+          dst += (EMUDISPLAY_TFTWIDTH-width);
         }      
         buffer += stride;  
       }
@@ -525,8 +485,8 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
   }
   #else
   int i,j,k=0;
-  if (width*2 <= ILI9341_TFTWIDTH) {
-    if (height*2 <= ILI9341_TFTHEIGHT) {
+  if (width*2 <= EMUDISPLAY_TFTWIDTH) {
+    if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
       setArea(0,0,width*2-1,height*2-1);     
     }
     else {
@@ -549,7 +509,7 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
         SPI.transfer16(val);
       }
       k+=1;
-      if (height*2 <= ILI9341_TFTHEIGHT) {
+      if (height*2 <= EMUDISPLAY_HEIGHT) {
         src=buffer;
         for (i=0; i<width; i++)
         {
@@ -563,12 +523,12 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
       buffer += stride;
     }
   }
-  else if (width <= ILI9341_TFTWIDTH) {
-    if (height*2 <= ILI9341_TFTHEIGHT) {
-      setArea((ILI9341_TFTWIDTH-width)/2,0,(ILI9341_TFTWIDTH-width)/2+width-1,height*2-1);  
+  else if (width <= EMUDISPLAY_TFTWIDTH) {
+    if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
+      setArea((EMUDISPLAY_TFTWIDTH-width)/2,0,(EMUDISPLAY_TFTWIDTH-width)/2+width-1,height*2-1);  
     }
     else {
-      setArea((ILI9341_TFTWIDTH-width)/2,0,(ILI9341_TFTWIDTH-width)/2+width-1,height-1);  
+      setArea((EMUDISPLAY_TFTWIDTHwidth)/2,0,(EMUDISPLAY_TFTWIDTH-width)/2+width-1,height-1);  
     }   
     SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
     digitalWrite(_cs, 0);
@@ -584,7 +544,7 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
     digitalWrite(_dc, 1);   
         SPI.transfer16(val);
       }
-      if (height*2 <= ILI9341_TFTHEIGHT) {
+      if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
         src=buffer;
         for (i=0; i<width; i++)
         {
@@ -609,7 +569,7 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
 
 void ILI9341_t3DMA::writeLine(int width, int height, int stride, uint8_t *buf, uint16_t *palette16) {
   uint8_t *src=buf;
-  uint16_t *dst = &screen[ILI9341_TFTWIDTH*stride];
+  uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride];
   for (int i=0; i<width; i++)
   {
     uint8_t val = *src++;

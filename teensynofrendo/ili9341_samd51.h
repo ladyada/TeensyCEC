@@ -25,8 +25,8 @@
 #define B16(rgb) ((rgb<<3)&0xf8) 
 
 
-#define ILI9341_TFTWIDTH      256
-#define ILI9341_TFTHEIGHT     240
+#define EMUDISPLAY_TFTWIDTH      256
+#define EMUDISPLAY_TFTHEIGHT     240
 #define ILI9341_TFTREALWIDTH  320
 #define ILI9341_TFTREALHEIGHT 240
 
