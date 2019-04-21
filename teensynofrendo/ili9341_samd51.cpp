@@ -6,17 +6,40 @@
 
 
 #include "ili9341_samd51.h"
+#if defined(USE_SPI_DMA)
+  #error("Must not have SPI DMA enabled in Adafruit_SPITFT.h"
+#endif
+
+#include <Adafruit_ZeroDMA.h>
+#include "wiring_private.h"  // pinPeripheral() function
+#include <malloc.h>          // memalign() function
+
+Adafruit_ZeroDMA dma;                  ///< DMA instance
+DmacDescriptor  *dptr         = NULL;  ///< 1st descriptor
+DmacDescriptor  *descriptor    = NULL; ///< Allocated descriptor list
+int numDescriptors;
+int descriptor_bytes;
+volatile uint8_t ntransfer = 0;
+
+// DMA transfer-in-progress indicator and callback
+static volatile bool dma_busy = false;
+static void dma_callback(Adafruit_ZeroDMA *dma) {
+  dma_busy = false;
+  ntransfer++;
+  if (ntransfer >= SCREEN_DMA_NUM_SETTINGS) {   
+    ntransfer = 0;
+   // if (cancelled) {
+        //dmatx.disable();
+        //rstop = 1;
+   // }
+  }
+}
+
 #include "font8x8.h"
+#include "iopins.h"
 
 #define SPICLOCK 24000000
 
-#define MADCTL_MY  0x80  ///< Bottom to top
-#define MADCTL_MX  0x40  ///< Right to left
-#define MADCTL_MV  0x20  ///< Reverse Mode
-#define MADCTL_ML  0x10  ///< LCD refresh Bottom to top
-#define MADCTL_RGB 0x00  ///< Red-Green-Blue pixel order
-#define MADCTL_BGR 0x08  ///< Blue-Green-Red pixel order
-#define MADCTL_MH  0x04  ///< LCD refresh right to left
 
 #ifdef DMA_FULL
 //static DMAMEM uint16_t dmascreen[ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH+ILI9341_VIDEOMEMSPARE];
@@ -41,56 +64,66 @@ volatile uint8_t ntransfer = 0;
 */
 
 
-static void dmaInterrupt() {
-/*
-  dmatx.clearInterrupt();
-  ntransfer++;
-  if (ntransfer >= SCREEN_DMA_NUM_SETTINGS) {   
-    ntransfer = 0;
-    if (cancelled) {
-        dmatx.disable();
-        rstop = 1;
+static bool setDmaStruct() {
+  if (dma.allocate() != DMA_STATUS_OK) { // Allocate channel
+    Serial.println("Couldn't allocate DMA");
+    return false;
+  }
+  // The DMA library needs to alloc at least one valid descriptor,
+  // so we do that here. It's not used in the usual sense though,
+  // just before a transfer we copy descriptor[0] to this address.
+
+  descriptor_bytes = EMUDISPLAY_TFTWIDTH * EMUDISPLAY_TFTHEIGHT / 2; // each one is half a screen but 2 bytes per screen so this is correct
+  numDescriptors = 4;
+
+  if (NULL == (dptr = dma.addDescriptor(NULL, NULL, descriptor_bytes, DMA_BEAT_SIZE_BYTE, false, false))) {
+    Serial.println("Couldn't add descriptor");
+    dma.free(); // Deallocate DMA channel
+    return false;
+  }
+
+  // DMA descriptors MUST be 128-bit (16 byte) aligned.
+  // memalign() is considered obsolete but it's replacements
+  // (aligned_alloc() or posix_memalign()) are not currently
+  // available in the version of ARM GCC in use, but this
+  // is, so here we are.
+  if (NULL == (descriptor = (DmacDescriptor *)memalign(16, numDescriptors * sizeof(DmacDescriptor)))) {
+    Serial.println("Couldn't allocate descriptors");
+    return false;
+  }
+  int                dmac_id;
+  volatile uint32_t *data_reg;
+  dmac_id  = SERCOM7_DMAC_ID_TX;
+  data_reg = &SERCOM7->SPI.DATA.reg;
+  dma.setPriority(DMA_PRIORITY_3);
+  dma.setTrigger(dmac_id);
+  dma.setAction(DMA_TRIGGER_ACTON_BEAT);
+
+  // Initialize descriptor list.
+  for(int d=0; d<numDescriptors; d++) {
+    descriptor[d].BTCTRL.bit.VALID    = true;
+    descriptor[d].BTCTRL.bit.EVOSEL   =
+      DMA_EVENT_OUTPUT_DISABLE;
+    descriptor[d].BTCTRL.bit.BLOCKACT =
+       DMA_BLOCK_ACTION_NOACT;
+    descriptor[d].BTCTRL.bit.BEATSIZE =
+      DMA_BEAT_SIZE_BYTE;
+    descriptor[d].BTCTRL.bit.DSTINC   = 0;
+    descriptor[d].BTCTRL.bit.SRCINC = 1;
+    descriptor[d].BTCTRL.bit.STEPSEL  =
+      DMA_STEPSEL_SRC;
+    descriptor[d].BTCTRL.bit.STEPSIZE =
+      DMA_ADDRESS_INCREMENT_STEP_SIZE_1;
+    descriptor[d].BTCNT.reg   = descriptor_bytes;
+    descriptor[d].DSTADDR.reg = (uint32_t)data_reg;
+    // WARNING SRCADDRs MUST BE SET ELSEWHERE!
+    if (d == numDescriptors-1) {
+      descriptor[d].DESCADDR.reg = 0;
+    } else {
+      descriptor[d].DESCADDR.reg = (uint32_t)&descriptor[d+1];
     }
   }
-  */
-}
-
-static void setDmaStruct() {
-  /*
-  const uint32_t bytesPerLine = ILI9341_TFTWIDTH * 2;
-  const uint32_t maxLines = (SCREEN_DMA_MAX_SIZE / bytesPerLine);
-  uint32_t i = 0, sum = 0, lines;
-  do {
-
-    //Source:
-    lines = min(maxLines, ILI9341_TFTHEIGHT - sum);
-    int32_t len = lines * bytesPerLine;
-    dmasettings[i].TCD->CSR = 0;
-    dmasettings[i].TCD->SADDR = &screen[sum*ILI9341_TFTWIDTH];
-
-    dmasettings[i].TCD->SOFF = 2;
-    dmasettings[i].TCD->ATTR_SRC = 1;
-    dmasettings[i].TCD->NBYTES = 2;
-    dmasettings[i].TCD->SLAST = -len;
-    dmasettings[i].TCD->BITER = len / 2;
-    dmasettings[i].TCD->CITER = len / 2;
-
-    //Destination:
-    dmasettings[i].TCD->DADDR = &SPI0_PUSHR;
-    dmasettings[i].TCD->DOFF = 0;
-    dmasettings[i].TCD->ATTR_DST = 1;
-    dmasettings[i].TCD->DLASTSGA = 0;
-
-    dmasettings[i].replaceSettingsOnCompletion(dmasettings[i + 1]);
-    dmasettings[i].interruptAtCompletion();
-    //dmasettings[i].disableOnCompletion();
-    sum += lines;
-  } while (++i < SCREEN_DMA_NUM_SETTINGS);
-
-  dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].replaceSettingsOnCompletion(dmasettings[0]);
-  dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].interruptAtCompletion(); 
-  //dmasettings[SCREEN_DMA_NUM_SETTINGS - 1].disableOnCompletion();
-*/
+  return true;
 }
 
 
@@ -122,16 +155,12 @@ void ILI9341_t3DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
 
 void ILI9341_t3DMA::begin(void) {
   _tft.begin();
-/*
-  setDmaStruct();
+  if (! setDmaStruct()) {
+    Serial.println("Failed to set up DMA");
+  }
 
-  dmatx.attachInterrupt(dmaInterrupt);
-   
-  dmatx.begin(false);
-  dmatx.triggerAtHardwareEvent(DMAMUX_SOURCE_SPI0_TX );
-  dmatx = dmasettings[0];
-  cancelled = false; 
-  */
+  dma.setCallback(dma_callback);
+  //dma_cancelled = false; 
 #ifdef FLIP_SCREEN          
   _tft.setRotation(1);
 #endif            
@@ -226,7 +255,7 @@ void ILI9341_t3DMA::fillScreenNoDma(uint16_t color) {
   _tft.fillScreen(color);
 }
 
-
+boolean first_time = true;
 void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
   setArea(0, 0, EMUDISPLAY_TFTWIDTH-1, EMUDISPLAY_TFTHEIGHT-1);  
   
@@ -234,18 +263,35 @@ void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
   digitalWrite(_cs, 0);
   digitalWrite(_dc, 0);
   SPI.transfer(ILI9341_RAMWR);
-  int i,j;
   digitalWrite(_dc, 1);
-  for (j=0; j<240*EMUDISPLAY_TFTWIDTH; j++) {
+
+  // Initialize descriptor list SRC addrs
+  for(int d=0; d<numDescriptors; d++) {
+    descriptor[d].SRCADDR.reg = (uint32_t)pcolors + descriptor_bytes * d;
+    Serial.print("DMA descriptor #"); Serial.print(d); Serial.print(" $"); Serial.println(descriptor[d].SRCADDR.reg, HEX);
+  }
+  // Move new descriptor into place...
+  memcpy(dptr, &descriptor[0], sizeof(DmacDescriptor));
+  dma_busy = true;
+  Serial.print("DMA kick");
+  dma.startJob();                // Trigger SPI DMA transfer
+  while (dma_busy) {
+    Serial.print(".");
+  }
+   /*        
+  for (int j=0; j<240*EMUDISPLAY_TFTWIDTH; j++)
+  {
       SPI.transfer16(*pcolors++);     
   }
+  */
+  Serial.print("DMA done");
   digitalWrite(_dc, 0);
   SPI.transfer(ILI9341_SLPOUT);
   digitalWrite(_dc, 1);
   digitalWrite(_cs, 1);
   SPI.endTransaction();  
   
-  setArea(0, 0, max_screen_width, max_screen_height);  
+  setArea(0, 0, max_screen_width, max_screen_height);
 }
 
 void ILI9341_t3DMA::drawSpriteNoDma(int16_t x, int16_t y, const uint16_t *bitmap) {
