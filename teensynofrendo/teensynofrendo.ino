@@ -17,20 +17,8 @@ bool vgaMode = false;
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
 
-#include "Adafruit_ZeroTimer.h"
-#define MY_TIMER_TC 5
 #define TIMER_LED 22
 #define FRAME_LED 23
-Adafruit_ZeroTimer myTimer = Adafruit_ZeroTimer(MY_TIMER_TC);
-
-void TC5_Handler(){  // change this to match TC #
-  Adafruit_ZeroTimer::timerHandler(MY_TIMER_TC);
-}
-void Timer5Callback()
-{
-  vblCount();
-}
-
 
 volatile boolean vbl=true;
 static int skip=0;
@@ -88,6 +76,8 @@ static void vblCount() {
 void setup() {
   while (!Serial);
   delay(100);
+  pinMode(A15, OUTPUT);
+  digitalWrite(A15, HIGH);
   Serial.println("-----------------------------");
 
   arcada.begin();
@@ -97,21 +87,14 @@ void setup() {
 
   emu_init();  
 
-  myTimer.configure(TC_CLOCK_PRESCALER_DIV4, // prescaler
-                TC_COUNTER_SIZE_16BIT,   // bit width of timer/counter
-                TC_WAVE_GENERATION_MATCH_PWM // frequency or PWM mode
-                );
-
-  myTimer.setCompare(0, 48000000/4/200);  // 48mhz clock, div 4, div 200 hz -> 5 ms vsync
-  myTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, Timer5Callback);
-  myTimer.enable(true);
-
 #ifdef TIMER_LED
   pinMode(TIMER_LED, OUTPUT);
 #endif
 #ifdef FRAME_LED
   pinMode(FRAME_LED, OUTPUT);
 #endif
+
+  arcada.timerCallback(200, vblCount);
 }
 
 
