@@ -4,8 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <Adafruit_Arcada_def.h>
-
+#include "Adafruit_Arcada_Def.h"
 
 //Nes stuff wants to define this as well...
 #undef false
@@ -161,22 +160,22 @@ int osd_init()
 /*
 ** Video
 */
-static int video_init(int width, int height)
+static int init(int width, int height)
 {
 	return 0;
 }
 
-static void video_shutdown(void)
+static void shutdown(void)
 {
 }
 
-static int video_set_mode(int width, int height)
+static int set_mode(int width, int height)
 {
    return 0;
 }
 
 static bitmap_t *myBitmap=NULL;
-static void video_set_palette(rgb_t *pal)
+static void set_palette(rgb_t *pal)
 {
   int i;
   for (i = 0; i < PALETTE_SIZE; i++)
@@ -187,13 +186,13 @@ static void video_set_palette(rgb_t *pal)
 }
 
 /* clear all frames to a particular color */
-static void video_clear(uint8 color)
+static void clear(uint8 color)
 {
 }
 
 /* acquire the directbuffer for writing */
 static char fb[1]; //dummy
-static bitmap_t *video_lock_write(void)
+static bitmap_t *lock_write(void)
 {
    if (myBitmap == NULL)
    	myBitmap = bmp_createhw((uint8*)fb, DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
@@ -202,26 +201,26 @@ static bitmap_t *video_lock_write(void)
 }
 
 /* release the resource */
-static void video_free_write(int num_dirties, rect_t *dirty_rects)
+static void free_write(int num_dirties, rect_t *dirty_rects)
 {
    //bmp_destroy(&myBitmap);
 }
 
 
-static void video_custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
+static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
 }
 
 static viddriver_t sdlDriver =
 {
    "Simple DirectMedia Layer",         /* name */
-   video_init,          /* init */
-   video_shutdown,      /* shutdown */
-   video_set_mode,      /* set_mode */
-   video_set_palette,   /* set_palette */
-   video_clear,         /* clear */
-   video_lock_write,    /* lock_write */
-   video_free_write,    /* free_write */
-   video_custom_blit,   /* custom_blit */
+   init,          /* init */
+   shutdown,      /* shutdown */
+   set_mode,      /* set_mode */
+   set_palette,   /* set_palette */
+   clear,         /* clear */
+   lock_write,    /* lock_write */
+   free_write,    /* free_write */
+   custom_blit,   /* custom_blit */
    false          /* invalidate flag */
 };
 
