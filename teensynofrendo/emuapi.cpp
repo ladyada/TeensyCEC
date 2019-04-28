@@ -32,7 +32,7 @@ static File file;
 #define MAX_MENULINES       ((ARCADA_TFT_HEIGHT / TEXT_HEIGHT) - 2)
 #define MENU_FILE_XOFFSET   (TEXT_WIDTH/2)
 #define MENU_FILE_YOFFSET   (2*TEXT_HEIGHT)
-#define MENU_FILE_W         ((ARCADA_TFT_WIDTH / TEXT_WIDTH) - 2)*TEXT_WIDTH
+#define MENU_FILE_W         ARCADA_TFT_WIDTH
 #define MENU_FILE_H         (MAX_MENULINES*TEXT_HEIGHT)
 #define MENU_FILE_BGCOLOR   RGBVAL16(0x00,0x00,0x20)
 #define MENU_JOYS_YOFFSET   (12*TEXT_HEIGHT)
@@ -55,11 +55,20 @@ void toggleMenu(bool on) {
     menuOn=true;
     menuRedraw=true;  
     arcada.fillScreen(ARCADA_BLACK);
-    arcada.setTextColor(ARCADA_WHITE, ARCADA_BLUE);
+    arcada.fillRect(0, 0, ARCADA_TFT_WIDTH, TEXT_HEIGHT*2, ARCADA_BLUE);
+    arcada.setTextColor(ARCADA_WHITE);
     arcada.setTextSize(MENU_TEXT_SIZE);
     arcada.setTextWrap(false);
-    arcada.setCursor(0, 0);
-    arcada.print(TITLE);
+    arcada.setCursor((ARCADA_TFT_WIDTH-(14*TEXT_WIDTH))/2, 0);
+    arcada.println("=NES Emulator=");
+    arcada.setCursor(0, TEXT_HEIGHT);
+    arcada.print(nbFiles);
+    arcada.print(" files found on ");
+    #ifdef ARCADA_USE_SD_FS
+      arcada.print("SD Card");
+    #elif defined(ARCADA_USE_QSPI_FS)
+      arcada.print("QSPI");
+    #endif
     //arcada.drawRGBBitmap(MENU_VBAR_XOFFSET, MENU_VBAR_YOFFSET, (uint16_t*)bmpvbar+2, ((uint16_t*)bmpvbar)[0], ((uint16_t*)bmpvbar)[1]);
   } else {
     menuOn = false;    

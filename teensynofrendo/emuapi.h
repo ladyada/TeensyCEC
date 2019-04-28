@@ -6,8 +6,6 @@
 #define CUSTOM_SND  1
 //#define TIMER_REND  1
 
-#define TITLE "   NES Emulator             "
-
 #define emu_Init(ROM) {nes_Start(ROM); nes_Init(); }
 #define emu_Step(x) { nes_Step(); }
 
@@ -51,8 +49,7 @@ const unsigned short keys[] = {
 
 
 extern void emu_init(void);
-extern void emu_printf(const char * format);
-extern void emu_printi(int val);
+extern void emu_printf(const char *str);
 extern void * emu_Malloc(int size);
 extern void emu_Free(void * pt);
 
