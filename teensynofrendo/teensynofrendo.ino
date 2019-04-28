@@ -147,8 +147,8 @@ void emu_SetPaletteEntry(unsigned char r, unsigned char g, unsigned char b, int 
 {
   if (index<PALETTE_SIZE) {
     //Serial.println("%d: %d %d %d\n", index, r,g,b);
-    palette8[index]  = __builtin_bswap16(RGBVAL8(r,g,b));
-    palette16[index] = __builtin_bswap16(RGBVAL16(r,g,b));
+    palette8[index]  = RGBVAL8(r,g,b);
+    palette16[index] = RGBVAL16(r,g,b);
   }
 }
 
@@ -163,7 +163,7 @@ void emu_DrawVsync(void)
 
 void emu_DrawLine(unsigned char * VBuf, int width, int height, int line) 
 {
-  tft.writeLine(width,1,line, VBuf, palette16);
+  tft.writeLine(width, 1, line, VBuf, palette16);
 }  
 
 void emu_DrawScreen(unsigned char * VBuf, int width, int height, int stride) 

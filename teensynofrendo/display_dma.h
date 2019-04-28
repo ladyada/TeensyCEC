@@ -29,6 +29,8 @@
 #define EMUDISPLAY_TFTWIDTH      256
 #define EMUDISPLAY_TFTHEIGHT     240
 
+#define EMU_SCALEDOWN      2
+
 #ifdef __cplusplus
 
 #define SCREEN_DMA_MAX_SIZE 0xD000

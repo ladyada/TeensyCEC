@@ -310,13 +310,41 @@ void Display_DMA::writeScreen(int width, int height, int stride, uint8_t *buf, u
   }
 }
 
+uint8_t last_even_line[256];
+
 void Display_DMA::writeLine(int width, int height, int stride, uint8_t *buf, uint16_t *palette16) {
   uint8_t *src=buf;
-  uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride];
-  for (int i=0; i<width; i++)
-  {
-    uint8_t val = *src++;
-    *dst++=palette16[val];
+  if (EMU_SCALEDOWN == 1) {
+    uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride];
+    for (int i=0; i<width; i++) {
+      uint8_t val = *src++;
+      *dst++=palette16[val];
+    }
+  } else {
+    if (stride % 2 == 0) { // skip even lines, we'll avg it later
+      memcpy(last_even_line, buf, 256);
+    } else {
+      uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride/2];
+      uint16_t red, green, blue;
+      uint16_t colors[4], color;
+      for (int i=0; i<width; i+=2) {
+        colors[0] = palette16[src[i]];
+        colors[1] = palette16[src[i+1]];
+        colors[2] = palette16[last_even_line[i]];
+        colors[3] = palette16[last_even_line[i+1]];
+        red = green = blue = 0;
+        for (uint8_t c=0; c<3; c++) {      // sum up all 3 colors from 4 pixels
+          red += colors[c] >> 11;
+          green += (colors[c] >> 5) & 0x2F;
+          blue += colors[c] & 0x1F;
+        }
+        red /= 4;  green /= 4;  blue /= 4;
+        color = red & 0x1F; color <<= 5; // rejoin into a color
+        color |= green & 0x2F; color <<= 6;
+        color |= blue & 0x1F;
+        *dst++=__builtin_bswap16(color);
+      }
+    }
   }
 }
 
