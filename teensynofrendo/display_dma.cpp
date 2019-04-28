@@ -101,7 +101,7 @@ static bool setDmaStruct() {
   // so we do that here. It's not used in the usual sense though,
   // just before a transfer we copy descriptor[0] to this address.
 
-  descriptor_bytes = EMUDISPLAY_TFTWIDTH * EMUDISPLAY_TFTHEIGHT / 2; // each one is half a screen but 2 bytes per screen so this is correct
+  descriptor_bytes = EMUDISPLAY_WIDTH * EMUDISPLAY_HEIGHT / 2; // each one is half a screen but 2 bytes per screen so this is correct
   numDescriptors = 4;
 
   if (NULL == (dptr = dma.addDescriptor(NULL, NULL, descriptor_bytes, DMA_BEAT_SIZE_BYTE, false, false))) {
@@ -248,7 +248,7 @@ uint16_t * Display_DMA::getLineBuffer(int j)
 
 void Display_DMA::fillScreen(uint16_t color) {
   uint16_t *dst = &screen[0];
-  for (int i=0; i<EMUDISPLAY_TFTWIDTH*EMUDISPLAY_TFTHEIGHT; i++)  {
+  for (int i=0; i<EMUDISPLAY_WIDTH*EMUDISPLAY_HEIGHT; i++)  {
     *dst++ = color;
   }
 }
@@ -260,7 +260,7 @@ void Display_DMA::writeScreen(int width, int height, int stride, uint8_t *buf, u
   if (screen != NULL) {
   uint16_t *dst = &screen[0];
     int i,j;
-    if (width*2 <= EMUDISPLAY_TFTWIDTH) {
+    if (width*2 <= EMUDISPLAY_WIDTH) {
       for (j=0; j<height; j++)
       {
         src=buffer;
@@ -270,8 +270,8 @@ void Display_DMA::writeScreen(int width, int height, int stride, uint8_t *buf, u
           *dst++ = val;
           *dst++ = val;
         }
-        dst += (EMUDISPLAY_TFTWIDTH-width*2);
-        if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
+        dst += (EMUDISPLAY_WIDTH-width*2);
+        if (height*2 <= EMUDISPLAY_HEIGHT) {
           src=buffer;
           for (i=0; i<width; i++)
           {
@@ -279,13 +279,13 @@ void Display_DMA::writeScreen(int width, int height, int stride, uint8_t *buf, u
             *dst++ = val;
             *dst++ = val;
           }
-          dst += (EMUDISPLAY_TFTWIDTH-width*2);      
+          dst += (EMUDISPLAY_WIDTH-width*2);      
         } 
         buffer += stride;      
       }
     }
-    else if (width <= EMUDISPLAY_TFTWIDTH) {
-      dst += (EMUDISPLAY_TFTWIDTH-width)/2;
+    else if (width <= EMUDISPLAY_WIDTH) {
+      dst += (EMUDISPLAY_WIDTH-width)/2;
       for (j=0; j<height; j++)
       {
         src=buffer;
@@ -294,15 +294,15 @@ void Display_DMA::writeScreen(int width, int height, int stride, uint8_t *buf, u
           uint16_t val = palette16[*src++];
           *dst++ = val;
         }
-        dst += (EMUDISPLAY_TFTWIDTH-width);
-        if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
+        dst += (EMUDISPLAY_WIDTH-width);
+        if (height*2 <= EMUDISPLAY_HEIGHT) {
           src=buffer;
           for (i=0; i<width; i++)
           {
             uint16_t val = palette16[*src++];
             *dst++ = val;
           }
-          dst += (EMUDISPLAY_TFTWIDTH-width);
+          dst += (EMUDISPLAY_WIDTH-width);
         }      
         buffer += stride;  
       }
@@ -310,63 +310,66 @@ void Display_DMA::writeScreen(int width, int height, int stride, uint8_t *buf, u
   }
 }
 
-uint8_t last_even_line_red[128], last_even_line_green[128], last_even_line_blue[128];
+#if EMU_SCALEDOWN == 2
+  uint8_t last_even_line_red[NATIVE_WIDTH/2], last_even_line_green[NATIVE_WIDTH/2], last_even_line_blue[NATIVE_WIDTH/2];
+#endif
 
 void Display_DMA::writeLine(int width, int height, int stride, uint8_t *buf, uint16_t *palette16) {
   uint8_t *src=buf;
-  if (EMU_SCALEDOWN == 1) {
-    uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride];
-    for (int i=0; i<width; i++) {
-      uint8_t val = *src++;
-      *dst++=palette16[val];
+#if EMU_SCALEDOWN == 1
+  uint16_t *dst = &screen[EMUDISPLAY_WIDTH*stride];
+  for (int i=0; i<width; i++) {
+    uint8_t val = *src++;
+    *dst++=palette16[val];
+  }
+#elif EMU_SCALEDOWN == 2
+  uint8_t *red_p = last_even_line_red;
+  uint8_t *green_p = last_even_line_green;
+  uint8_t *blue_p = last_even_line_blue;
+  uint16_t color0, color1;
+  if (stride % 2 == 0) { 
+    for (int i=0; i<width/2; i++) {
+      // extract and store the averaged colors (takes memory but saves time!)
+      color0 = palette16[*src++];
+      color1 = palette16[*src++];
+      *blue_p++ = (color0 & 0x1F) + (color1 & 0x1F);
+      color0 >>= 5; color1 >>= 5;
+      *green_p++ = (color0 & 0x2F) + (color1  & 0x2F);
+      color0 >>= 6; color1 >>= 6;
+      *red_p++ = (color0 & 0x1F) + (color1 & 0x1F);
     }
   } else {
-    uint8_t *red_p = last_even_line_red;
-    uint8_t *green_p = last_even_line_green;
-    uint8_t *blue_p = last_even_line_blue;
-    uint16_t color0, color1;
-    if (stride % 2 == 0) { 
+    uint16_t *dst = &screen[EMUDISPLAY_WIDTH*(stride-1)/2]; // stride skipped every other line
+    for (int i=0; i<width/2; i++) {
+      color0 = palette16[*src++];
+      color1 = palette16[*src++];
+      uint16_t color;
+      uint8_t blue = *blue_p++ + (color0 & 0x1F) + (color1 & 0x1F);
+      blue >>= 2;
+      color0 >>= 5; color1 >>= 5;
+      uint8_t green = *green_p++ + (color0 & 0x2F) + (color1 & 0x2F);
+      green >>= 2;
+      color0 >>= 6; color1 >>= 6;
+      uint8_t red = *red_p++ + (color0 & 0x1F) + (color1 & 0x1F);;
+      red >>= 2;
       
-      for (int i=0; i<width/2; i++) {
-        // extract and store the averaged colors (takes memory but saves time!)
-        color0 = palette16[*src++];
-        color1 = palette16[*src++];
-        *blue_p++ = (color0 & 0x1F) + (color1 & 0x1F);
-        color0 >>= 5; color1 >>= 5;
-        *green_p++ = (color0 & 0x2F) + (color1  & 0x2F);
-        color0 >>= 6; color1 >>= 6;
-        *red_p++ = (color0 & 0x1F) + (color1 & 0x1F);
-      }
-    } else {
-      uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride/2];
-      for (int i=0; i<width/2; i++) {
-        color0 = palette16[*src++];
-        color1 = palette16[*src++];
-        uint16_t color;
-        uint8_t blue = *blue_p++ + (color0 & 0x1F) + (color1 & 0x1F);
-        blue >>= 2;
-        color0 >>= 5; color1 >>= 5;
-        uint8_t green = *green_p++ + (color0 & 0x2F) + (color1 & 0x2F);
-        green >>= 2;
-        color0 >>= 6; color1 >>= 6;
-        uint8_t red = *red_p++ + (color0 & 0x1F) + (color1 & 0x1F);;
-        red >>= 2;
-        
-        color = red; color <<= 6; // rejoin into a color
-        color |= green; color <<= 5;
-        color |= blue;
-        
-        *dst++=__builtin_bswap16(color);
-      }
+      color = red; color <<= 6; // rejoin into a color
+      color |= green; color <<= 5;
+      color |= blue;
+      
+      *dst++=__builtin_bswap16(color);
     }
   }
+#else
+  #error("Only scale 1 or 2 supported")
+#endif
 }
 
 inline void Display_DMA::setAreaCentered(void) {
-  setArea((ARCADA_TFT_WIDTH  - EMUDISPLAY_TFTWIDTH ) / 2, 
-  (ARCADA_TFT_HEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
-  (ARCADA_TFT_WIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1, 
-  (ARCADA_TFT_HEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
+  setArea((ARCADA_TFT_WIDTH  - EMUDISPLAY_WIDTH ) / 2, 
+  (ARCADA_TFT_HEIGHT - EMUDISPLAY_HEIGHT) / 2,
+  (ARCADA_TFT_WIDTH  - EMUDISPLAY_WIDTH ) / 2 + EMUDISPLAY_WIDTH  - 1, 
+  (ARCADA_TFT_HEIGHT - EMUDISPLAY_HEIGHT) / 2 + EMUDISPLAY_HEIGHT - 1);
 }
 
 #endif

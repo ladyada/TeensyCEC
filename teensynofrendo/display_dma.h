@@ -26,10 +26,11 @@
 #define B16(rgb) ((rgb<<3)&0xf8) 
 
 
-#define EMUDISPLAY_TFTWIDTH      256
-#define EMUDISPLAY_TFTHEIGHT     240
-
-#define EMU_SCALEDOWN            2
+#define NATIVE_WIDTH      256
+#define NATIVE_HEIGHT     240
+#define EMU_SCALEDOWN       2
+#define EMUDISPLAY_WIDTH   (NATIVE_WIDTH / EMU_SCALEDOWN)
+#define EMUDISPLAY_HEIGHT  (NATIVE_HEIGHT / EMU_SCALEDOWN)
 
 #ifdef __cplusplus
 
