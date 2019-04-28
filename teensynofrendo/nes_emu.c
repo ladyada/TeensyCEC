@@ -282,3 +282,7 @@ void nes_Start(char * filename)
 		}  
 	}
 }
+
+void nes_End(void) {
+  emu_Free(romdata);
+}

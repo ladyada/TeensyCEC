@@ -29,7 +29,7 @@ int numDescriptors;
 int descriptor_bytes;
 
 static uint16_t *screen = NULL;
-volatile uint8_t rstop = 0;
+
 volatile bool cancelled = false;
 volatile uint8_t ntransfer = 0;
 
@@ -46,9 +46,6 @@ void Display_DMA::dmaFrame(void) {
   ntransfer++;
   if (ntransfer >= SCREEN_DMA_NUM_SETTINGS) {   
     ntransfer = 0;
-    if (cancelled) {
-      rstop = 1;
-    }
   }
 
   digitalWrite(ARCADA_TFT_DC, 0);
@@ -56,6 +53,9 @@ void Display_DMA::dmaFrame(void) {
   digitalWrite(ARCADA_TFT_DC, 1);
   digitalWrite(ARCADA_TFT_CS, 1);
   SPI.endTransaction();
+  if (cancelled) {
+    return;
+  }
   setAreaCentered();
   cancelled = false;
   
@@ -64,8 +64,7 @@ void Display_DMA::dmaFrame(void) {
   digitalWrite(ARCADA_TFT_DC, 0);
   SPI.transfer(ILI9341_RAMWR);
   digitalWrite(ARCADA_TFT_DC, 1);
-/*
- * TODO RE-ADD LATER
+
   int sercom_id_core, sercom_id_slow;
   sercom_id_core = SERCOM7_GCLK_ID_CORE;
   sercom_id_slow = SERCOM7_GCLK_ID_SLOW;
@@ -86,7 +85,6 @@ void Display_DMA::dmaFrame(void) {
   pchctrl.bit.CHEN                       = 1;
   GCLK->PCHCTRL[sercom_id_slow].reg      = pchctrl.reg;
   while(!GCLK->PCHCTRL[sercom_id_slow].bit.CHEN); // Wait for enable
-*/
 
   dma_busy = true;
   dma.startJob(); // Trigger next SPI DMA transfer
@@ -216,12 +214,7 @@ void Display_DMA::refresh(void) {
 void Display_DMA::stop(void) {
   Serial.println("DMA stop");
 
-/*
-  rstop = 0;
-  wait();
-  delay(50);
-  //dmatx.disable();
-  */
+  cancelled = true;
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));  
   SPI.endTransaction();
   digitalWrite(ARCADA_TFT_CS, 1);

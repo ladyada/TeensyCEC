@@ -28,7 +28,8 @@ static unsigned short palette16[PALETTE_SIZE];
 
 volatile boolean vbl=true;
 static int skip=0;
-
+uint16_t hold_start_select = 0;
+extern uint16_t button_CurState;
 
 static void main_step() {
   uint16_t bClick = emu_DebounceLocalKeys();
@@ -46,13 +47,27 @@ static void main_step() {
   if (bClick & ARCADA_BUTTONMASK_A) {  
     emu_printf("A");
   }  
+
+  if (button_CurState & (ARCADA_BUTTONMASK_START | ARCADA_BUTTONMASK_SELECT)) {
+    hold_start_select++;
+    if (hold_start_select == 100) {
+      emu_printf("Quit!");
+      tft.stop();
+      delay(50);
+      nes_End();
+      arcada.fillScreen(ARCADA_BLACK);
+      toggleMenu(true);
+    }
+  } else {
+    hold_start_select = 0;
+  }
      
   if (menuActive()) {
     int action = handleMenu(bClick);
     char * filename = menuSelection();
     if (action == ACTION_RUNTFT) {
       arcada.fillScreen(ARCADA_BLACK);
-      if (!arcada.createFrameBuffer(ARCADA_TFT_WIDTH, ARCADA_TFT_HEIGHT)) {
+      if (!arcada.getFrameBuffer() && !arcada.createFrameBuffer(ARCADA_TFT_WIDTH, ARCADA_TFT_HEIGHT)) {
         Serial.println("Failed to create framebuffer, out of memory?");
         while(1);
       }

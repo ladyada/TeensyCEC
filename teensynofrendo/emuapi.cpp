@@ -22,11 +22,11 @@ static File file;
 
 #define TEXT_HEIGHT         16
 #define TEXT_WIDTH          10
-#define MAX_FILENAME_SIZE   ((ARCADA_TFT_WIDTH / TEXT_WIDTH) - 2)
+#define MAX_FILENAME_SIZE   80
 #define MAX_MENULINES       ((ARCADA_TFT_HEIGHT / TEXT_HEIGHT) - 2)
 #define MENU_FILE_XOFFSET   (2*TEXT_WIDTH)
 #define MENU_FILE_YOFFSET   (2*TEXT_HEIGHT)
-#define MENU_FILE_W         (MAX_FILENAME_SIZE*TEXT_WIDTH)
+#define MENU_FILE_W         ((ARCADA_TFT_WIDTH / TEXT_WIDTH) - 2)*TEXT_WIDTH
 #define MENU_FILE_H         (MAX_MENULINES*TEXT_HEIGHT)
 #define MENU_FILE_BGCOLOR   RGBVAL16(0x00,0x00,0x20)
 #define MENU_JOYS_YOFFSET   (12*TEXT_HEIGHT)
@@ -85,16 +85,20 @@ int handleMenu(uint16_t bClick)
       action = ACTION_RUNTFT;       
   }
   else if (bClick & ARCADA_BUTTONMASK_UP) {
-    if (curFile!=0) {
-      menuRedraw=true;
+    if (curFile==0) {
+      curFile = nbFiles-1;
+    } else {
       curFile--;
     }
+    menuRedraw=true;
   } 
   else if (bClick & ARCADA_BUTTONMASK_DOWN)  {
     if ((curFile<(nbFiles-1)) && (nbFiles)) {
       curFile++;
-      menuRedraw=true;
+    } else {
+      curFile = 0;
     }
+    menuRedraw=true;
   }
     
   if (menuRedraw && nbFiles) {
@@ -202,6 +206,7 @@ void * emu_Malloc(int size)
 
 void emu_Free(void * pt)
 {
+  emu_printf("Freeing memory");
   free(pt);
 }
 
@@ -307,13 +312,14 @@ int emu_LoadFileSeek(char * filename, char * buf, int numbytes, int pos) {
 }
 
 static uint16_t bLastState;
+uint16_t button_CurState;
 uint16_t emu_DebounceLocalKeys(void) {
-  uint16_t bCurState = arcada.readButtons();
+  button_CurState = arcada.readButtons();
 
-  uint16_t bClick = bCurState & ~bLastState;
-  bLastState = bCurState;
+  uint16_t bClick = button_CurState & ~bLastState;
+  bLastState = button_CurState;
 
-  return (bClick);
+  return bClick;
 }
 
 uint32_t emu_ReadKeys(void)  {
