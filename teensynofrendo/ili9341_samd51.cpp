@@ -55,10 +55,7 @@ void ILI9341_t3DMA::dmaFrame(void) {
   digitalWrite(ARCADA_TFT_DC, 1);
   digitalWrite(ARCADA_TFT_CS, 1);
   SPI.endTransaction();
-  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
-          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
+  setAreaCentered();
   cancelled = false;
   
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
@@ -175,14 +172,9 @@ void ILI9341_t3DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
 }
 
 
-void ILI9341_t3DMA::begin(void) {     
-
-};
-
-
 void ILI9341_t3DMA::start(void) {
-  uint16_t centerdx = (ILI9341_TFTREALWIDTH - max_screen_width)/2;
-  uint16_t centerdy = (ILI9341_TFTREALHEIGHT - max_screen_height)/2;
+  uint16_t centerdx = (ARCADA_TFT_WIDTH - max_screen_width)/2;
+  uint16_t centerdy = (ARCADA_TFT_HEIGHT - max_screen_height)/2;
   setArea(centerdx, centerdy, max_screen_width+centerdx, max_screen_height+centerdy);
 }
 
@@ -216,10 +208,7 @@ void ILI9341_t3DMA::refresh(void) {
   foo = this; // Save pointer to ourselves so callback (outside class) can reach members
   dma.setCallback(dma_callback);
 
-  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
-          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
+  setAreaCentered();
   cancelled = false; 
   
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
@@ -266,7 +255,7 @@ void ILI9341_t3DMA::wait(void) {
 
 uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
 { 
-  return(&screen[j*ILI9341_TFTREALWIDTH]);
+  return(&screen[j*ARCADA_TFT_WIDTH]);
 }
 
 /***********************************************************************************************
@@ -278,10 +267,7 @@ void ILI9341_t3DMA::fillScreenNoDma(uint16_t color) {
 
 
 void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
-  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
-          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
+  setAreaCentered();
   
   SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
   digitalWrite(ARCADA_TFT_CS, 0);
@@ -379,10 +365,7 @@ void ILI9341_t3DMA::drawSpriteNoDma(int16_t x, int16_t y, const uint16_t *bitmap
   digitalWrite(ARCADA_TFT_DC, 1);
   digitalWrite(ARCADA_TFT_CS, 1);
   SPI.endTransaction();   
-  setArea((ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
-          (ILI9341_TFTREALWIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1,
-          (ILI9341_TFTREALHEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
+  setAreaCentered();
 }
 
 void ILI9341_t3DMA::drawTextNoDma(int16_t x, int16_t y, const char * text, uint16_t fgcolor, uint16_t bgcolor, bool doublesize) {
@@ -392,11 +375,7 @@ void ILI9341_t3DMA::drawTextNoDma(int16_t x, int16_t y, const char * text, uint1
 
     setArea(x,y,x+7,y+(doublesize?15:7));
   
-    //SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
     digitalWrite(ARCADA_TFT_CS, 0);
-    //digitalWrite(_dc, 0);
-    //SPI.transfer(ILI9341_RAMWR);
-
     digitalWrite(ARCADA_TFT_DC, 1);
     for (int i=0;i<8;i++)
     {
@@ -493,7 +472,6 @@ void ILI9341_t3DMA::fillScreen(uint16_t color) {
 void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf, uint16_t *palette16) {
   uint8_t *buffer=buf;
   uint8_t *src; 
-#ifdef DMA_FULL
   if (screen != NULL) {
   uint16_t *dst = &screen[0];
     int i,j;
@@ -545,88 +523,6 @@ void ILI9341_t3DMA::writeScreen(int width, int height, int stride, uint8_t *buf,
       }
     }    
   }
-  #else
-  int i,j,k=0;
-  if (width*2 <= EMUDISPLAY_TFTWIDTH) {
-    if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
-      setArea(0,0,width*2-1,height*2-1);     
-    }
-    else {
-      setArea(0,0,width*2-1,height-1);     
-    }
-    SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-    digitalWrite(_cs, 0);
-    digitalWrite(_dc, 0);
-    SPI.transfer(ILI9341_RAMWR);    
-
-    for (j=0; j<height; j++)
-    {    
-      src=buffer;
-      for (i=0; i<width; i++)
-      {
-        uint16_t val = palette16[*src++];
-    digitalWrite(_dc, 1);   
-        SPI.transfer16(val);
-    digitalWrite(_dc, 1);   
-        SPI.transfer16(val);
-      }
-      k+=1;
-      if (height*2 <= EMUDISPLAY_HEIGHT) {
-        src=buffer;
-        for (i=0; i<width; i++)
-        {
-          uint16_t val = palette16[*src++];
-    digitalWrite(_dc, 1);   
-          SPI.transfer16(val);
-    digitalWrite(_dc, 1);   
-          SPI.transfer16(val);
-        }
-      }
-      buffer += stride;
-    }
-  }
-  else if (width <= EMUDISPLAY_TFTWIDTH) {
-    if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
-      setArea((EMUDISPLAY_TFTWIDTH-width)/2,0,(EMUDISPLAY_TFTWIDTH-width)/2+width-1,height*2-1);  
-    }
-    else {
-      setArea((EMUDISPLAY_TFTWIDTHwidth)/2,0,(EMUDISPLAY_TFTWIDTH-width)/2+width-1,height-1);  
-    }   
-    SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-    digitalWrite(ARCADA_TFT_CS, 0);
-    digitalWrite(ARCADA_TFT_DC, 0);
-    SPI.transfer(ILI9341_RAMWR);
-
-    for (j=0; j<height; j++)
-    {
-      src=buffer;
-      for (i=0; i<width; i++)
-      {
-        uint16_t val = palette16[*src++];
-        digitalWrite(ARCADA_TFT_DC, 1);   
-        SPI.transfer16(val);
-      }
-      if (height*2 <= EMUDISPLAY_TFTHEIGHT) {
-        src=buffer;
-        for (i=0; i<width; i++)
-        {
-          uint16_t val = palette16[*src++];
-          digitalWrite(ARCADA_TFT_DC, 1);   
-          SPI.transfer16(val);
-        }
-      }
-      buffer += stride;
-    }
-  }
-  digitalWrite(ARCADA_TFT_DC, 0);
-  SPI.transfer(ILI9341_SLPOUT);
-  digitalWrite(ARCADA_TFT_DC, 1);
-  digitalWrite(ARCADA_TFT_CS, 1);
-  SPI.endTransaction();
-
-  setArea(0, 0, max_screen_width, max_screen_height);  
-  //setArea(0,0,319,239);   
-#endif
 }
 
 void ILI9341_t3DMA::writeLine(int width, int height, int stride, uint8_t *buf, uint16_t *palette16) {
@@ -637,6 +533,13 @@ void ILI9341_t3DMA::writeLine(int width, int height, int stride, uint8_t *buf, u
     uint8_t val = *src++;
     *dst++=palette16[val];
   }
+}
+
+inline void ILI9341_t3DMA::setAreaCentered(void) {
+  setArea((ARCADA_TFT_WIDTH  - EMUDISPLAY_TFTWIDTH ) / 2, 
+  (ARCADA_TFT_HEIGHT - EMUDISPLAY_TFTHEIGHT) / 2,
+  (ARCADA_TFT_WIDTH  - EMUDISPLAY_TFTWIDTH ) / 2 + EMUDISPLAY_TFTWIDTH  - 1, 
+  (ARCADA_TFT_HEIGHT - EMUDISPLAY_TFTHEIGHT) / 2 + EMUDISPLAY_TFTHEIGHT - 1);
 }
 
 #endif

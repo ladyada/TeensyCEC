@@ -31,6 +31,7 @@
 #define ILI9341_TFTREALWIDTH  320
 #define ILI9341_TFTREALHEIGHT 240
 
+
 #define ILI9341_VIDEOMEMSPARE 0
 
 #ifdef __cplusplus
@@ -47,16 +48,15 @@ class ILI9341_t3DMA
 	  void setFrameBuffer(uint16_t * fb);
 	  static uint16_t * getFrameBuffer(void);
 
-	  void begin(void);
-	  void flipscreen(bool flip);
-    boolean isflipped(void);
 	  void start(void);
 	  void refresh(void);
 	  void stop();
 	  void wait(void);	
     uint16_t * getLineBuffer(int j);
             
-    void setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2);  
+    void setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2); 
+    void setAreaCentered(void);
+     
     void fillScreenNoDma(uint16_t color);
     void writeScreenNoDma(const uint16_t *pcolors);
     void drawTextNoDma(int16_t x, int16_t y, const char * text, uint16_t fgcolor, uint16_t bgcolor, bool doublesize);
