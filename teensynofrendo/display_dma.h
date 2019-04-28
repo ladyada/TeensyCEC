@@ -29,7 +29,7 @@
 #define EMUDISPLAY_TFTWIDTH      256
 #define EMUDISPLAY_TFTHEIGHT     240
 
-#define EMU_SCALEDOWN      2
+#define EMU_SCALEDOWN            2
 
 #ifdef __cplusplus
 

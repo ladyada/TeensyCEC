@@ -24,7 +24,7 @@ static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
 
 #define TIMER_LED 22
-#define FRAME_LED 23
+#define FRAME_LED 24
 
 volatile boolean vbl=true;
 static int skip=0;
@@ -161,8 +161,13 @@ void emu_DrawVsync(void)
   while (vbl==vb) {};
 }
 
+bool frametoggle;
 void emu_DrawLine(unsigned char * VBuf, int width, int height, int line) 
 {
+  if (line == 0) {
+    digitalWrite(FRAME_LED, frametoggle);
+    frametoggle = !frametoggle;
+  }
   tft.writeLine(width, 1, line, VBuf, palette16);
 }  
 

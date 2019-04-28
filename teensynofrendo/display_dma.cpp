@@ -321,32 +321,41 @@ void Display_DMA::writeLine(int width, int height, int stride, uint8_t *buf, uin
       *dst++=palette16[val];
     }
   } else {
-    uint16_t color, color0, color1, color2, color3;
+    uint8_t *red_p = last_even_line_red;
+    uint8_t *green_p = last_even_line_green;
+    uint8_t *blue_p = last_even_line_blue;
+    uint16_t color0, color1;
     if (stride % 2 == 0) { 
+      
       for (int i=0; i<width/2; i++) {
         // extract and store the averaged colors (takes memory but saves time!)
         color0 = palette16[*src++];
         color1 = palette16[*src++];
-        last_even_line_red[i] = (color0 >> 11) & 0x1F;
-        last_even_line_red[i] += (color1 >> 11) & 0x1F;
-        last_even_line_green[i] = (color0 >> 5) & 0x2F;
-        last_even_line_green[i] += (color1 >> 5) & 0x2F;
-        last_even_line_blue[i] = color0 & 0x1F;
-        last_even_line_blue[i] += color1 & 0x1F;
+        *blue_p++ = (color0 & 0x1F) + (color1 & 0x1F);
+        color0 >>= 5; color1 >>= 5;
+        *green_p++ = (color0 & 0x2F) + (color1  & 0x2F);
+        color0 >>= 6; color1 >>= 6;
+        *red_p++ = (color0 & 0x1F) + (color1 & 0x1F);
       }
     } else {
       uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride/2];
-      uint16_t red, green, blue;
       for (int i=0; i<width/2; i++) {
-        color2 = palette16[*src++];
-        color3 = palette16[*src++];
-        red = last_even_line_red[i] + ((color2 >> 11) & 0x1F) + ((color3 >> 11) & 0x1F);
-        green = last_even_line_green[i] + ((color2 >> 5) & 0x2F) + ((color3 >> 5) & 0x2F);
-        blue = last_even_line_blue[i] + (color2 & 0x1F) + (color3 & 0x1F);
-        red /= 4;  green /= 4;  blue /= 4;
-        color = red & 0x1F; color <<= 6; // rejoin into a color
-        color |= green & 0x2F; color <<= 5;
-        color |= blue & 0x1F;
+        color0 = palette16[*src++];
+        color1 = palette16[*src++];
+        uint16_t color;
+        uint8_t blue = *blue_p++ + (color0 & 0x1F) + (color1 & 0x1F);
+        blue >>= 2;
+        color0 >>= 5; color1 >>= 5;
+        uint8_t green = *green_p++ + (color0 & 0x2F) + (color1 & 0x2F);
+        green >>= 2;
+        color0 >>= 6; color1 >>= 6;
+        uint8_t red = *red_p++ + (color0 & 0x1F) + (color1 & 0x1F);;
+        red >>= 2;
+        
+        color = red; color <<= 6; // rejoin into a color
+        color |= green; color <<= 5;
+        color |= blue;
+        
         *dst++=__builtin_bswap16(color);
       }
     }
