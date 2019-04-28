@@ -310,7 +310,7 @@ void Display_DMA::writeScreen(int width, int height, int stride, uint8_t *buf, u
   }
 }
 
-uint8_t last_even_line[256];
+uint8_t last_even_line_red[128], last_even_line_green[128], last_even_line_blue[128];
 
 void Display_DMA::writeLine(int width, int height, int stride, uint8_t *buf, uint16_t *palette16) {
   uint8_t *src=buf;
@@ -321,23 +321,28 @@ void Display_DMA::writeLine(int width, int height, int stride, uint8_t *buf, uin
       *dst++=palette16[val];
     }
   } else {
-    if (stride % 2 == 0) { // skip even lines, we'll avg it later
-      memcpy(last_even_line, buf, 256);
+    uint16_t color, color0, color1, color2, color3;
+    if (stride % 2 == 0) { 
+      for (int i=0; i<width/2; i++) {
+        // extract and store the averaged colors (takes memory but saves time!)
+        color0 = palette16[*src++];
+        color1 = palette16[*src++];
+        last_even_line_red[i] = (color0 >> 11) & 0x1F;
+        last_even_line_red[i] += (color1 >> 11) & 0x1F;
+        last_even_line_green[i] = (color0 >> 5) & 0x2F;
+        last_even_line_green[i] += (color1 >> 5) & 0x2F;
+        last_even_line_blue[i] = color0 & 0x1F;
+        last_even_line_blue[i] += color1 & 0x1F;
+      }
     } else {
       uint16_t *dst = &screen[EMUDISPLAY_TFTWIDTH*stride/2];
-      uint8_t red, green, blue;
-      uint16_t colors[4], color;
-      for (int i=0; i<width; i+=2) {
-        colors[0] = palette16[src[i]];
-        colors[1] = palette16[src[i+1]];
-        colors[2] = palette16[last_even_line[i]];
-        colors[3] = palette16[last_even_line[i+1]];
-        red = green = blue = 0;
-        for (uint8_t c=0; c<4; c++) {      // sum up all 3 colors from 4 pixels
-          red += (colors[c] >> 11) & 0x1F;
-          green += (colors[c] >> 5) & 0x2F;
-          blue += colors[c] & 0x1F;
-        }
+      uint16_t red, green, blue;
+      for (int i=0; i<width/2; i++) {
+        color2 = palette16[*src++];
+        color3 = palette16[*src++];
+        red = last_even_line_red[i] + ((color2 >> 11) & 0x1F) + ((color3 >> 11) & 0x1F);
+        green = last_even_line_green[i] + ((color2 >> 5) & 0x2F) + ((color3 >> 5) & 0x2F);
+        blue = last_even_line_blue[i] + (color2 & 0x1F) + (color3 & 0x1F);
         red /= 4;  green /= 4;  blue /= 4;
         color = red & 0x1F; color <<= 6; // rejoin into a color
         color |= green & 0x2F; color <<= 5;
