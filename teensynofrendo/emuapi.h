@@ -9,7 +9,7 @@
 //#define TIMER_REND  1
 
 // Title:     <                                        >
-#define TITLE "               NES Emulator             "
+#define TITLE "   NES Emulator             "
 
 #define emu_Init(ROM) {nes_Start(ROM); nes_Init(); }
 #define emu_Step(x) { nes_Step(); }

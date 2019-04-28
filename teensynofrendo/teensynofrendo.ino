@@ -6,11 +6,11 @@ extern "C" {
 
 
 #include "keyboard_osd.h"
-#include "ili9341_samd51.h"
+#include "display_dma.h"
 #include <Adafruit_Arcada.h>
 Adafruit_Arcada arcada;
 // use SPI
-ILI9341_t3DMA tft = ILI9341_t3DMA();
+Display_DMA tft = Display_DMA();
 
 bool vgaMode = false;
 
@@ -46,9 +46,11 @@ static void main_step() {
     char * filename = menuSelection();
     if (action == ACTION_RUNTFT) {
       arcada.fillScreen(ARCADA_BLACK);
-      tft.setFrameBuffer((uint16_t *)malloc((ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH)*sizeof(uint16_t)));     
-      Serial.print("TFT init: ");  
-      Serial.println(tft.getFrameBuffer()?"ok":"ko");       
+      if (!arcada.createFrameBuffer(ARCADA_TFT_WIDTH, ARCADA_TFT_HEIGHT)) {
+        Serial.println("Failed to create framebuffer, out of memory?");
+        while(1);
+      }
+      tft.setFrameBuffer(arcada.getFrameBuffer());     
       toggleMenu(false);
       vgaMode = false;
       tft.refresh();

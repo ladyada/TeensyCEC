@@ -1,4 +1,4 @@
-#include "ili9341_samd51.h"
+#include "display_dma.h"
 #include <Adafruit_Arcada.h>
 extern Adafruit_Arcada arcada;
 
@@ -17,14 +17,14 @@ extern "C" {
 #include "bmptft.h"
 
 
-extern ILI9341_t3DMA tft;
+extern Display_DMA tft;
 static File file;
 
-#define MAX_FILENAME_SIZE   28
-#define MAX_MENULINES       9
 #define TEXT_HEIGHT         16
-#define TEXT_WIDTH          8
-#define MENU_FILE_XOFFSET   (6*TEXT_WIDTH)
+#define TEXT_WIDTH          10
+#define MAX_FILENAME_SIZE   ((ARCADA_TFT_WIDTH / TEXT_WIDTH) - 2)
+#define MAX_MENULINES       ((ARCADA_TFT_HEIGHT / TEXT_HEIGHT) - 2)
+#define MENU_FILE_XOFFSET   (2*TEXT_WIDTH)
 #define MENU_FILE_YOFFSET   (2*TEXT_HEIGHT)
 #define MENU_FILE_W         (MAX_FILENAME_SIZE*TEXT_WIDTH)
 #define MENU_FILE_H         (MAX_MENULINES*TEXT_HEIGHT)
@@ -49,8 +49,12 @@ void toggleMenu(bool on) {
     menuOn=true;
     menuRedraw=true;  
     arcada.fillScreen(ARCADA_BLACK);
-    tft.drawTextNoDma(0,0, TITLE, RGBVAL16(0x00,0xff,0xff), RGBVAL16(0x00,0x00,0xff), true);  
-    arcada.drawRGBBitmap(MENU_VBAR_XOFFSET, MENU_VBAR_YOFFSET, (uint16_t*)bmpvbar+2, ((uint16_t*)bmpvbar)[0], ((uint16_t*)bmpvbar)[1]);
+    arcada.setTextColor(ARCADA_WHITE, ARCADA_BLUE);
+    arcada.setTextSize(2);
+    arcada.setTextWrap(false);
+    arcada.setCursor(0, 0);
+    arcada.print(TITLE);
+    //arcada.drawRGBBitmap(MENU_VBAR_XOFFSET, MENU_VBAR_YOFFSET, (uint16_t*)bmpvbar+2, ((uint16_t*)bmpvbar)[0], ((uint16_t*)bmpvbar)[1]);
   } else {
     menuOn = false;    
   }
@@ -121,12 +125,15 @@ int handleMenu(uint16_t bClick)
       if ( (!entry.isDirectory()) || ((entry.isDirectory()) && (strcmp(filename,".")) && (strcmp(filename,"..")) ) ) {
         if (fileIndex >= topFile) {              
           if ((i+topFile) < nbFiles ) {
+            arcada.setTextSize(2);
+            arcada.setCursor(MENU_FILE_XOFFSET,i*TEXT_HEIGHT+MENU_FILE_YOFFSET);
             if ((i+topFile)==curFile) {
-              tft.drawTextNoDma(MENU_FILE_XOFFSET,i*TEXT_HEIGHT+MENU_FILE_YOFFSET, filename, RGBVAL16(0xff,0xff,0x00), RGBVAL16(0xff,0x00,0x00), true);
+              arcada.setTextColor(ARCADA_YELLOW, ARCADA_RED);
+              arcada.print(filename);
               strcpy(selection,filename);            
-            }
-            else {
-              tft.drawTextNoDma(MENU_FILE_XOFFSET,i*TEXT_HEIGHT+MENU_FILE_YOFFSET, filename, 0xFFFF, 0x0000, true);      
+            } else {
+              arcada.setTextColor(ARCADA_WHITE, ARCADA_BLACK);
+              arcada.print(filename);
             }
           }
           i++; 

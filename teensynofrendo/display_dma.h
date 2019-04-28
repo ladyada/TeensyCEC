@@ -28,11 +28,6 @@
 
 #define EMUDISPLAY_TFTWIDTH      256
 #define EMUDISPLAY_TFTHEIGHT     240
-#define ILI9341_TFTREALWIDTH  320
-#define ILI9341_TFTREALHEIGHT 240
-
-
-#define ILI9341_VIDEOMEMSPARE 0
 
 #ifdef __cplusplus
 
@@ -40,10 +35,10 @@
 #define SCREEN_DMA_NUM_SETTINGS (((uint32_t)((2 * ILI9341_TFTHEIGHT * ILI9341_TFTWIDTH) / SCREEN_DMA_MAX_SIZE))+1)
 
 
-class ILI9341_t3DMA
+class Display_DMA
 {
   public:
-  	ILI9341_t3DMA() {};
+  	Display_DMA(void) {};
 
 	  void setFrameBuffer(uint16_t * fb);
 	  static uint16_t * getFrameBuffer(void);
@@ -55,9 +50,6 @@ class ILI9341_t3DMA
             
     void setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2); 
     void setAreaCentered(void);
-     
-    void writeScreenNoDma(const uint16_t *pcolors);
-    void drawTextNoDma(int16_t x, int16_t y, const char * text, uint16_t fgcolor, uint16_t bgcolor, bool doublesize);
 
     void writeScreen(int width, int height, int stride, uint8_t *buffer, uint16_t *palette16);
     void writeLine(int width, int height, int stride, uint8_t *buffer, uint16_t *palette16);
