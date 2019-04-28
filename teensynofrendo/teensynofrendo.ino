@@ -80,7 +80,21 @@ void setup() {
   digitalWrite(A15, HIGH);
   Serial.println("-----------------------------");
 
-  arcada.begin();
+  if (!arcada.begin()) {
+    Serial.println("Couldn't init arcada");
+    while (1);
+  }
+  if (!arcada.filesysBegin()) {
+    Serial.println("Filesystem failed");
+    while (1);
+  }
+  if (!arcada.chdir("/nes")) {
+    Serial.println("Change to /nes ROMs folder failed");
+    while (1);
+  }
+
+  Serial.printf("Filesys & ROM folder initialized, %d files found\n", arcada.filesysListFiles());
+
   tft.begin();
   tft.flipscreen(true);  
   tft.start();
