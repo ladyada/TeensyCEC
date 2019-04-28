@@ -15,17 +15,20 @@ Display_DMA tft = Display_DMA();
 
 #include "AudioPlaySystem.h"
 
+#ifdef HAS_SND
 AudioPlaySystem mymixer = AudioPlaySystem();
 AudioOutputAnalogStereo  audioOut;
 AudioConnection   patchCord1(mymixer, 0, audioOut, 0);
 AudioConnection   patchCord2(mymixer, 0, audioOut, 1);
-
+#endif
 
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
 
 #define TIMER_LED 13
 #define FRAME_LED 12
+#define EMUSTEP_LED 11
+bool emu_toggle=false;
 
 volatile boolean vbl=true;
 static int skip=0;
@@ -81,6 +84,8 @@ static void main_step() {
     delay(20);
   }
   else {
+      digitalWrite(EMUSTEP_LED, emu_toggle);
+      emu_toggle = !emu_toggle;
       emu_Step();
   }
 }
@@ -129,6 +134,9 @@ void setup() {
 #endif
 #ifdef FRAME_LED
   pinMode(FRAME_LED, OUTPUT);
+#endif
+#ifdef EMUSTEP_LED
+  pinMode(EMUSTEP_LED, OUTPUT);
 #endif
 
   arcada.timerCallback(200, vblCount);
@@ -194,7 +202,6 @@ void *emu_LineBuffer(int line)
 
 void emu_sndInit() {
   Serial.println("Sound init");  
-
   AudioMemory(2);
   mymixer.start();
 }

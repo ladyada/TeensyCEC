@@ -225,18 +225,6 @@ void Display_DMA::stop(void) {
 
 void Display_DMA::wait(void) {
   Serial.println("DMA wait");
-
-/*
-  rstop = 1;
-  unsigned long m = millis(); 
-  cancelled = true; 
-  while (!rstop)  {
-    if ((millis() - m) > 100) break;
-    delay(10);
-    asm volatile("wfi");
-  };
-  rstop = 0;
-  */
 }
 
 uint16_t * Display_DMA::getLineBuffer(int j)
