@@ -20,11 +20,17 @@ extern "C" {
 extern Display_DMA tft;
 static File file;
 
-#define TEXT_HEIGHT         16
-#define TEXT_WIDTH          10
+#if ARCADA_TFT_WIDTH >= 240
+  #define MENU_TEXT_SIZE 2
+#else
+  #define MENU_TEXT_SIZE 1
+#endif
+
+#define TEXT_HEIGHT         (MENU_TEXT_SIZE*8)
+#define TEXT_WIDTH          (MENU_TEXT_SIZE*5)
 #define MAX_FILENAME_SIZE   80
 #define MAX_MENULINES       ((ARCADA_TFT_HEIGHT / TEXT_HEIGHT) - 2)
-#define MENU_FILE_XOFFSET   (2*TEXT_WIDTH)
+#define MENU_FILE_XOFFSET   (TEXT_WIDTH/2)
 #define MENU_FILE_YOFFSET   (2*TEXT_HEIGHT)
 #define MENU_FILE_W         ((ARCADA_TFT_WIDTH / TEXT_WIDTH) - 2)*TEXT_WIDTH
 #define MENU_FILE_H         (MAX_MENULINES*TEXT_HEIGHT)
@@ -50,7 +56,7 @@ void toggleMenu(bool on) {
     menuRedraw=true;  
     arcada.fillScreen(ARCADA_BLACK);
     arcada.setTextColor(ARCADA_WHITE, ARCADA_BLUE);
-    arcada.setTextSize(2);
+    arcada.setTextSize(MENU_TEXT_SIZE);
     arcada.setTextWrap(false);
     arcada.setCursor(0, 0);
     arcada.print(TITLE);
@@ -129,7 +135,7 @@ int handleMenu(uint16_t bClick)
       if ( (!entry.isDirectory()) || ((entry.isDirectory()) && (strcmp(filename,".")) && (strcmp(filename,"..")) ) ) {
         if (fileIndex >= topFile) {              
           if ((i+topFile) < nbFiles ) {
-            arcada.setTextSize(2);
+            arcada.setTextSize(MENU_TEXT_SIZE);
             arcada.setCursor(MENU_FILE_XOFFSET,i*TEXT_HEIGHT+MENU_FILE_YOFFSET);
             if ((i+topFile)==curFile) {
               arcada.setTextColor(ARCADA_YELLOW, ARCADA_RED);
@@ -174,9 +180,9 @@ void emu_init(void)
 }
 
 
-void emu_printf(const char * format)
+void emu_printf(const char *str)
 {
-  Serial.println(format);
+  Serial.println(str);
 }
 
 void emu_printf(int val)

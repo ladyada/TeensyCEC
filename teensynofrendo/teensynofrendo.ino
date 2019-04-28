@@ -16,15 +16,16 @@ Display_DMA tft = Display_DMA();
 #include "AudioPlaySystem.h"
 
 AudioPlaySystem mymixer = AudioPlaySystem();
-AudioOutputAnalogStereo dac1;
-AudioConnection   patchCord1(mymixer, dac1);
+AudioOutputAnalogStereo  audioOut;
+AudioConnection   patchCord1(mymixer, 0, audioOut, 0);
+AudioConnection   patchCord2(mymixer, 0, audioOut, 1);
 
 
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
 
-#define TIMER_LED 22
-#define FRAME_LED 24
+#define TIMER_LED 13
+#define FRAME_LED 12
 
 volatile boolean vbl=true;
 static int skip=0;
@@ -96,10 +97,10 @@ static void vblCount() {
 // the setup() method runs once, when the sketch starts
 // ****************************************************
 void setup() {
-  while (!Serial);
+  //while (!Serial);
   delay(100);
-  pinMode(A15, OUTPUT);
-  digitalWrite(A15, HIGH);
+  //pinMode(A15, OUTPUT);
+  //digitalWrite(A15, HIGH);
   Serial.println("-----------------------------");
 
   if (!arcada.begin()) {
@@ -118,7 +119,9 @@ void setup() {
   Serial.printf("Filesys & ROM folder initialized, %d files found\n", arcada.filesysListFiles());
 
   arcada.displayBegin();
-
+  arcada.setBacklight(255);
+  arcada.enableSpeaker(true);
+  arcada.fillScreen(ARCADA_RED);
   emu_init();  
 
 #ifdef TIMER_LED

@@ -49,25 +49,26 @@ void Display_DMA::dmaFrame(void) {
   }
 
   digitalWrite(ARCADA_TFT_DC, 0);
-  SPI.transfer(ILI9341_SLPOUT);
+  ARCADA_TFT_SPI.transfer(ILI9341_SLPOUT);
   digitalWrite(ARCADA_TFT_DC, 1);
   digitalWrite(ARCADA_TFT_CS, 1);
-  SPI.endTransaction();
+  ARCADA_TFT_SPI.endTransaction();
   if (cancelled) {
     return;
   }
   setAreaCentered();
   cancelled = false;
   
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+  ARCADA_TFT_SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
   digitalWrite(ARCADA_TFT_CS, 0);
   digitalWrite(ARCADA_TFT_DC, 0);
-  SPI.transfer(ILI9341_RAMWR);
+  ARCADA_TFT_SPI.transfer(ILI9341_RAMWR);
   digitalWrite(ARCADA_TFT_DC, 1);
 
+#ifdef HIGH_SPEED_SPI
   int sercom_id_core, sercom_id_slow;
-  sercom_id_core = SERCOM7_GCLK_ID_CORE;
-  sercom_id_slow = SERCOM7_GCLK_ID_SLOW;
+  sercom_id_core = DISPLAY_SERCOM_GCLKIDCORE;
+  sercom_id_slow = DISPLAY_SERCOM_GCLKIDSLOW;
 
   // Override SPI clock source to use 100 MHz peripheral clock (for 50 MHz SPI)
   GCLK_PCHCTRL_Type pchctrl;
@@ -85,6 +86,7 @@ void Display_DMA::dmaFrame(void) {
   pchctrl.bit.CHEN                       = 1;
   GCLK->PCHCTRL[sercom_id_slow].reg      = pchctrl.reg;
   while(!GCLK->PCHCTRL[sercom_id_slow].bit.CHEN); // Wait for enable
+#endif
 
   dma_busy = true;
   dma.startJob(); // Trigger next SPI DMA transfer
@@ -121,8 +123,8 @@ static bool setDmaStruct() {
   }
   int                dmac_id;
   volatile uint32_t *data_reg;
-  dmac_id  = SERCOM7_DMAC_ID_TX;
-  data_reg = &SERCOM7->SPI.DATA.reg;
+  dmac_id  = DISPLAY_SERCOM_DMACID;
+  data_reg = &DISPLAY_SERCOM->SPI.DATA.reg;
   dma.setPriority(DMA_PRIORITY_3);
   dma.setTrigger(dmac_id);
   dma.setAction(DMA_TRIGGER_ACTON_BEAT);
@@ -171,10 +173,10 @@ void Display_DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
 void Display_DMA::refresh(void) {
   while (dma_busy);
   digitalWrite(ARCADA_TFT_DC, 0);
-  SPI.transfer(ILI9341_SLPOUT);
+  ARCADA_TFT_SPI.transfer(ILI9341_SLPOUT);
   digitalWrite(ARCADA_TFT_DC, 1);
   digitalWrite(ARCADA_TFT_CS, 1);
-  SPI.endTransaction();  
+  ARCADA_TFT_SPI.endTransaction();  
 
   fillScreen(ARCADA_CYAN);
   if (screen == NULL) {
@@ -200,10 +202,10 @@ void Display_DMA::refresh(void) {
   setAreaCentered();
   cancelled = false; 
   
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
+  ARCADA_TFT_SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
   digitalWrite(ARCADA_TFT_CS, 0);
   digitalWrite(ARCADA_TFT_DC, 0);
-  SPI.transfer(ILI9341_RAMWR);
+  ARCADA_TFT_SPI.transfer(ILI9341_RAMWR);
   digitalWrite(ARCADA_TFT_DC, 1);
 
   Serial.print("DMA kick");
@@ -215,8 +217,8 @@ void Display_DMA::stop(void) {
   Serial.println("DMA stop");
 
   cancelled = true;
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));  
-  SPI.endTransaction();
+  ARCADA_TFT_SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));  
+  ARCADA_TFT_SPI.endTransaction();
   digitalWrite(ARCADA_TFT_CS, 1);
   digitalWrite(ARCADA_TFT_DC, 1);     
 }

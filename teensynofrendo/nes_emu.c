@@ -118,11 +118,11 @@ void osd_getinput(void)
 		b &= ~0x0008;
 	if (j & ARCADA_BUTTONMASK_UP)
 		b &= ~0x0010;
-	if (j & ARCADA_BUTTONMASK_LEFT)
+	if (j & ARCADA_BUTTONMASK_RIGHT)
 		b &= ~0x0020;
 	if (j & ARCADA_BUTTONMASK_DOWN)
 		b &= ~0x0040;
-	if (j & ARCADA_BUTTONMASK_RIGHT)
+	if (j & ARCADA_BUTTONMASK_LEFT)
 		b &= ~0x0080;
 
 	static int oldb=0xffff;
