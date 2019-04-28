@@ -1,12 +1,13 @@
 /*
   Copyright Frank Bösing, 2017
+  GPL license at https://github.com/FrankBoesing/Teensy64
 */
 
-#ifndef _ILI9341_T3DMAH_
-#define _ILI9341_T3DMAH_
+#ifndef _DISPLAY_DMA_
+#define _DISPLAY_DMA_
 
 
-#include <Adafruit_ILI9341.h>
+#include <Adafruit_Arcada.h>
 #include <Adafruit_ZeroDMA.h>
 
 #ifdef __cplusplus
@@ -15,7 +16,6 @@
 #endif
 
 #define DMA_FULL 1
-#define FLIP_SCREEN 1
 
 
 #define RGBVAL32(r,g,b)  ( (r<<16) | (g<<8) | b )
@@ -32,7 +32,7 @@
 #ifdef __cplusplus
 
 #define SCREEN_DMA_MAX_SIZE 0xD000
-#define SCREEN_DMA_NUM_SETTINGS (((uint32_t)((2 * ILI9341_TFTHEIGHT * ILI9341_TFTWIDTH) / SCREEN_DMA_MAX_SIZE))+1)
+#define SCREEN_DMA_NUM_SETTINGS (((uint32_t)((2 * ARCADA_TFT_HEIGHT * ARCADA_TFT_WIDTH) / SCREEN_DMA_MAX_SIZE))+1)
 
 
 class Display_DMA
@@ -59,11 +59,6 @@ class Display_DMA
 	  uint16_t getPixel(int16_t x, int16_t y);
 
     void dmaFrame(void); // End DMA-issued frame and start a new one
-
-  protected:
-    const uint16_t max_screen_width = ILI9341_TFTWIDTH-1;
-    const uint16_t max_screen_height = ILI9341_TFTHEIGHT-1;	
-	  bool flipped=false;
 };
 
 #endif

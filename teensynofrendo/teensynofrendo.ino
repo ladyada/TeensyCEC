@@ -46,7 +46,7 @@ static void main_step() {
     char * filename = menuSelection();
     if (action == ACTION_RUNTFT) {
       arcada.fillScreen(ARCADA_BLACK);
-      if (!arcada.createFrameBuffer(ARCADA_TFT_WIDTH, ARCADA_TFT_HEIGHT)) {
+      if (!arcada.createFrameBuffer(EMUDISPLAY_TFTWIDTH, EMUDISPLAY_TFTHEIGHT)) {
         Serial.println("Failed to create framebuffer, out of memory?");
         while(1);
       }

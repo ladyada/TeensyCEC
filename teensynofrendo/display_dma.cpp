@@ -1,5 +1,6 @@
 /*
   Copyright Frank Bösing, 2017
+  GPL license at https://github.com/FrankBoesing/Teensy64
 */
 
 #if defined(__SAMD51__)
@@ -63,7 +64,8 @@ void Display_DMA::dmaFrame(void) {
   digitalWrite(ARCADA_TFT_DC, 0);
   SPI.transfer(ILI9341_RAMWR);
   digitalWrite(ARCADA_TFT_DC, 1);
-
+/*
+ * TODO RE-ADD LATER
   int sercom_id_core, sercom_id_slow;
   sercom_id_core = SERCOM7_GCLK_ID_CORE;
   sercom_id_slow = SERCOM7_GCLK_ID_SLOW;
@@ -84,6 +86,7 @@ void Display_DMA::dmaFrame(void) {
   pchctrl.bit.CHEN                       = 1;
   GCLK->PCHCTRL[sercom_id_slow].reg      = pchctrl.reg;
   while(!GCLK->PCHCTRL[sercom_id_slow].bit.CHEN); // Wait for enable
+*/
 
   dma_busy = true;
   dma.startJob(); // Trigger next SPI DMA transfer
