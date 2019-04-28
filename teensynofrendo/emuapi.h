@@ -2,13 +2,10 @@
 #define EMUAPI_H
 #include <stdint.h>
 
-#define INVX        1
-//#define INVY        1
-//#define HAS_SND     1
-//#define CUSTOM_SND  1
+#define HAS_SND     1
+#define CUSTOM_SND  1
 //#define TIMER_REND  1
 
-// Title:     <                                        >
 #define TITLE "   NES Emulator             "
 
 #define emu_Init(ROM) {nes_Start(ROM); nes_Init(); }

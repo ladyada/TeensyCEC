@@ -4,15 +4,21 @@ extern "C" {
   #include "nes_emu.h"
 }
 
-
+#include <Adafruit_Arcada.h>
+#include <Audio.h>
+#include <AudioStream.h>
 #include "keyboard_osd.h"
 #include "display_dma.h"
-#include <Adafruit_Arcada.h>
+
 Adafruit_Arcada arcada;
-// use SPI
 Display_DMA tft = Display_DMA();
 
-bool vgaMode = false;
+#include "AudioPlaySystem.h"
+
+AudioPlaySystem mymixer = AudioPlaySystem();
+AudioOutputAnalogStereo dac1;
+AudioConnection   patchCord1(mymixer, dac1);
+
 
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
@@ -46,13 +52,12 @@ static void main_step() {
     char * filename = menuSelection();
     if (action == ACTION_RUNTFT) {
       arcada.fillScreen(ARCADA_BLACK);
-      if (!arcada.createFrameBuffer(EMUDISPLAY_TFTWIDTH, EMUDISPLAY_TFTHEIGHT)) {
+      if (!arcada.createFrameBuffer(ARCADA_TFT_WIDTH, ARCADA_TFT_HEIGHT)) {
         Serial.println("Failed to create framebuffer, out of memory?");
         while(1);
       }
       tft.setFrameBuffer(arcada.getFrameBuffer());     
       toggleMenu(false);
-      vgaMode = false;
       tft.refresh();
       emu_Init(filename);
     }
@@ -158,48 +163,15 @@ int emu_FrameSkip(void)
   return skip;
 }
 
-void * emu_LineBuffer(int line)
+void *emu_LineBuffer(int line)
 {
   return (void*)tft.getLineBuffer(line);
 }
 
-#ifdef HAS_SND
-
-#include <Audio.h>
-#include "AudioPlaySystem.h"
-
-AudioPlaySystem mymixer;
-AudioOutputAnalog dac1;
-AudioConnection   patchCord1(mymixer, dac1);
 
 void emu_sndInit() {
-  Serial.println("sound init");  
+  Serial.println("Sound init");  
 
-  AudioMemory(16);
+  AudioMemory(2);
   mymixer.start();
 }
-
-void emu_sndPlaySound(int chan, int volume, int freq)
-{
-  emu_printi(freq);
-  if (chan < 6) {
-    mymixer.sound(chan, freq, volume); 
-  }
-  
-  /*
-  Serial.print(chan);
-  Serial.print(":" );  
-  Serial.print(volume);  
-  Serial.print(":" );  
-  Serial.println(freq); 
-  */ 
-}
-
-void emu_sndPlayBuzz(int size, int val) {
-  mymixer.buzz(size,val); 
-  //Serial.print((val==1)?1:0); 
-  //Serial.print(":"); 
-  //Serial.println(size); 
-}
-
-#endif

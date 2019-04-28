@@ -1,14 +1,15 @@
 
 
-#ifndef audioplaysystem_h_
-#define audioplaysystem_h_
+#ifndef _audioplaysystem_h_
+#define _audioplaysystem_h_
 
 #include <AudioStream.h>
 
 class AudioPlaySystem : public AudioStream
 {
 public:
-	AudioPlaySystem(void) : AudioStream(0, NULL) { begin(); }
+	AudioPlaySystem(void) : AudioStream(0, NULL) 
+	{ begin(); }
 	void begin(void);
 	void setSampleParameters(float clockfreq, float samplerate);
 	void reset(void);
