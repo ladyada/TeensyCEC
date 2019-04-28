@@ -45,12 +45,12 @@ static void main_step() {
     int action = handleMenu(bClick);
     char * filename = menuSelection();
     if (action == ACTION_RUNTFT) {
+      arcada.fillScreen(ARCADA_BLACK);
       tft.setFrameBuffer((uint16_t *)malloc((ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH)*sizeof(uint16_t)));     
       Serial.print("TFT init: ");  
       Serial.println(tft.getFrameBuffer()?"ok":"ko");       
       toggleMenu(false);
-      vgaMode = false;   
-      tft.fillScreenNoDma( RGBVAL16(0x00,0x00,0x00) );
+      vgaMode = false;
       tft.refresh();
       emu_Init(filename);
     }
@@ -96,7 +96,6 @@ void setup() {
   Serial.printf("Filesys & ROM folder initialized, %d files found\n", arcada.filesysListFiles());
 
   arcada.displayBegin();
-  tft.start();
 
   emu_init();  
 

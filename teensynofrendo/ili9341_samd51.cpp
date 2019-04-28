@@ -153,11 +153,6 @@ static bool setDmaStruct() {
   return true;
 }
 
-
-ILI9341_t3DMA::ILI9341_t3DMA(void)
-{
-}
-
 void ILI9341_t3DMA::setFrameBuffer(uint16_t * fb) {
   screen = fb;
 }
@@ -169,13 +164,6 @@ uint16_t * ILI9341_t3DMA::getFrameBuffer(void) {
 void ILI9341_t3DMA::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
   arcada.startWrite();
   arcada.setAddrWindow(x1, y1, x2-x1+1, y2-y1+1);
-}
-
-
-void ILI9341_t3DMA::start(void) {
-  uint16_t centerdx = (ARCADA_TFT_WIDTH - max_screen_width)/2;
-  uint16_t centerdy = (ARCADA_TFT_HEIGHT - max_screen_height)/2;
-  setArea(centerdx, centerdy, max_screen_width+centerdx, max_screen_height+centerdy);
 }
 
 
@@ -261,9 +249,6 @@ uint16_t * ILI9341_t3DMA::getLineBuffer(int j)
 /***********************************************************************************************
     no DMA functions
  ***********************************************************************************************/
-void ILI9341_t3DMA::fillScreenNoDma(uint16_t color) {
-  arcada.fillScreen(color);
-}
 
 
 void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
@@ -291,81 +276,6 @@ void ILI9341_t3DMA::writeScreenNoDma(const uint16_t *pcolors) {
   SPI.endTransaction();  
   
   setArea(0, 0, max_screen_width, max_screen_height);
-}
-
-void ILI9341_t3DMA::drawSpriteNoDma(int16_t x, int16_t y, const uint16_t *bitmap) {
-    drawSpriteNoDma(x,y,bitmap, 0,0,0,0);
-}
-
-void ILI9341_t3DMA::drawSpriteNoDma(int16_t x, int16_t y, const uint16_t *bitmap, uint16_t arx, uint16_t ary, uint16_t arw, uint16_t arh)
-{
-  int bmp_offx = 0;
-  int bmp_offy = 0;
-  uint16_t *bmp_ptr;
-    
-  int w =*bitmap++;
-  int h = *bitmap++;
-//Serial.println(w);
-//Serial.println(h);
-
-  if ( (arw == 0) || (arh == 0) ) {
-    // no crop window
-    arx = x;
-    ary = y;
-    arw = w;
-    arh = h;
-  }
-  else {
-    if ( (x>(arx+arw)) || ((x+w)<arx) || (y>(ary+arh)) || ((y+h)<ary)   ) {
-      return;
-    }
-    
-    // crop area
-    if ( (x > arx) && (x<(arx+arw)) ) { 
-      arw = arw - (x-arx);
-      arx = arx + (x-arx);
-    } else {
-      bmp_offx = arx;
-    }
-    if ( ((x+w) > arx) && ((x+w)<(arx+arw)) ) {
-      arw -= (arx+arw-x-w);
-    }  
-    if ( (y > ary) && (y<(ary+arh)) ) {
-      arh = arh - (y-ary);
-      ary = ary + (y-ary);
-    } else {
-      bmp_offy = ary;
-    }
-    if ( ((y+h) > ary) && ((y+h)<(ary+arh)) ) {
-      arh -= (ary+arh-y-h);
-    }     
-  }
-
-  setArea(arx, ary, arx+arw-1, ary+arh-1);  
-  
-  SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE0));
-  digitalWrite(ARCADA_TFT_CS, 0);
-  digitalWrite(ARCADA_TFT_DC, 0);
-  SPI.transfer(ILI9341_RAMWR);      
-
-  bitmap = bitmap + bmp_offy*w + bmp_offx;
-  for (int row=0;row<arh; row++)
-  {
-    bmp_ptr = (uint16_t*)bitmap;
-    for (int col=0;col<arw; col++)
-    {
-        uint16_t color = *bmp_ptr++;
-        digitalWrite(ARCADA_TFT_DC, 1);
-        SPI.transfer16(color);             
-    } 
-    bitmap +=  w;
-  }
-  digitalWrite(ARCADA_TFT_DC, 0);
-  SPI.transfer(ILI9341_SLPOUT);
-  digitalWrite(ARCADA_TFT_DC, 1);
-  digitalWrite(ARCADA_TFT_CS, 1);
-  SPI.endTransaction();   
-  setAreaCentered();
 }
 
 void ILI9341_t3DMA::drawTextNoDma(int16_t x, int16_t y, const char * text, uint16_t fgcolor, uint16_t bgcolor, bool doublesize) {
@@ -444,13 +354,6 @@ void ILI9341_t3DMA::drawTextNoDma(int16_t x, int16_t y, const char * text, uint1
   
   setArea(0, 0, max_screen_width, max_screen_height);  
 }
-
-
-void ILI9341_t3DMA::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
-  arcada.fillRect(x, y, w, h, color);
-}
-
-
 
 /***********************************************************************************************
     DMA functions

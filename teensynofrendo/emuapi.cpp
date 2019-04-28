@@ -48,9 +48,9 @@ void toggleMenu(bool on) {
   if (on) {
     menuOn=true;
     menuRedraw=true;  
-    tft.fillScreenNoDma(RGBVAL16(0x00,0x00,0x00));
+    arcada.fillScreen(ARCADA_BLACK);
     tft.drawTextNoDma(0,0, TITLE, RGBVAL16(0x00,0xff,0xff), RGBVAL16(0x00,0x00,0xff), true);  
-    tft.drawSpriteNoDma(MENU_VBAR_XOFFSET,MENU_VBAR_YOFFSET,(uint16_t*)bmpvbar);
+    arcada.drawRGBBitmap(MENU_VBAR_XOFFSET, MENU_VBAR_YOFFSET, (uint16_t*)bmpvbar+2, ((uint16_t*)bmpvbar)[0], ((uint16_t*)bmpvbar)[1]);
   } else {
     menuOn = false;    
   }
@@ -99,7 +99,7 @@ int handleMenu(uint16_t bClick)
     char filename[MAX_FILENAME_SIZE+1];
     File entry;    
     file = arcada.open(); 
-    tft.drawRectNoDma(MENU_FILE_XOFFSET,MENU_FILE_YOFFSET, MENU_FILE_W, MENU_FILE_H, MENU_FILE_BGCOLOR);
+    arcada.fillRect(MENU_FILE_XOFFSET,MENU_FILE_YOFFSET, MENU_FILE_W, MENU_FILE_H, MENU_FILE_BGCOLOR);
 //    if (curFile <= (MAX_MENULINES/2-1)) topFile=0;
 //    else topFile=curFile-(MAX_MENULINES/2);
     if (curFile <= (MAX_MENULINES-1)) topFile=0;
