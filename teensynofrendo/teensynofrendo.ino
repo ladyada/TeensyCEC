@@ -10,7 +10,7 @@ extern "C" {
 #include <Adafruit_Arcada.h>
 Adafruit_Arcada arcada;
 // use SPI
-ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST);
+ILI9341_t3DMA tft = ILI9341_t3DMA();
 
 bool vgaMode = false;
 
@@ -95,8 +95,7 @@ void setup() {
 
   Serial.printf("Filesys & ROM folder initialized, %d files found\n", arcada.filesysListFiles());
 
-  tft.begin();
-  tft.flipscreen(true);  
+  arcada.displayBegin();
   tft.start();
 
   emu_init();  
