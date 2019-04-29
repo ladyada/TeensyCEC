@@ -10,13 +10,6 @@ extern "C" {
   #include "iopins.h"  
 }
 
-#include "logo.h"
-#include "bmpjoy.h"
-#include "bmpvbar.h"
-#include "bmpvga.h"
-#include "bmptft.h"
-
-
 extern Display_DMA tft;
 static File file;
 
