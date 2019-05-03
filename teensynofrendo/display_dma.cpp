@@ -6,6 +6,7 @@
 #if defined(__SAMD51__)
 #include <Adafruit_Arcada.h>
 extern Adafruit_Arcada arcada;
+extern volatile bool test_invert_screen;
 
 #include "display_dma.h"
 #if defined(USE_SPI_DMA)
@@ -16,7 +17,6 @@ extern Adafruit_Arcada arcada;
 #include "wiring_private.h"  // pinPeripheral() function
 #include <malloc.h>          // memalign() function
 
-#include "font8x8.h"
 #include "iopins.h"
 
 // Actually 50 MHz due to timer shenanigans below, but SPI lib still thinks it's 24 MHz
@@ -197,7 +197,8 @@ void Display_DMA::refresh(void) {
   memcpy(dptr, &descriptor[0], sizeof(DmacDescriptor));
   dma_busy = true;
   foo = this; // Save pointer to ourselves so callback (outside class) can reach members
-  dma.setCallback(dma_callback);
+  dma.loop(true);
+  //  dma.setCallback(dma_callback);
 
   setAreaCentered();
   cancelled = false; 
@@ -346,7 +347,7 @@ void Display_DMA::writeLine(int width, int height, int stride, uint8_t *buf, uin
       color = red; color <<= 6; // rejoin into a color
       color |= green; color <<= 5;
       color |= blue;
-      
+      if (test_invert_screen) color = ~color;
       *dst++=__builtin_bswap16(color);
     }
   }
