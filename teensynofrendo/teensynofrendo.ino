@@ -13,14 +13,14 @@ extern "C" {
 Adafruit_Arcada arcada;
 Display_DMA tft = Display_DMA();
 
+
 #include "AudioPlaySystem.h"
 
-#ifdef HAS_SND
 AudioPlaySystem mymixer = AudioPlaySystem();
 AudioOutputAnalogStereo  audioOut;
 AudioConnection   patchCord1(mymixer, 0, audioOut, 0);
 AudioConnection   patchCord2(mymixer, 0, audioOut, 1);
-#endif
+
 
 static unsigned char  palette8[PALETTE_SIZE];
 static unsigned short palette16[PALETTE_SIZE];
@@ -30,7 +30,9 @@ static unsigned short palette16[PALETTE_SIZE];
 #define EMUSTEP_LED 11
 bool emu_toggle=false;
 
-volatile boolean vbl=true;
+volatile bool test_invert_screen = false;
+
+volatile bool vbl=true;
 static int skip=0;
 uint16_t hold_start_select = 0;
 extern uint16_t button_CurState;
@@ -55,12 +57,16 @@ static void main_step() {
   if (button_CurState & (ARCADA_BUTTONMASK_START | ARCADA_BUTTONMASK_SELECT)) {
     hold_start_select++;
     if (hold_start_select == 100) {
+      test_invert_screen = !test_invert_screen;
+      Serial.printf("Invert %d", test_invert_screen);
+      hold_start_select = 0;
+/*
       emu_printf("Quit!");
       tft.stop();
       delay(50);
       nes_End();
       arcada.fillScreen(ARCADA_BLACK);
-      toggleMenu(true);
+      toggleMenu(true);*/
     }
   } else {
     hold_start_select = 0;

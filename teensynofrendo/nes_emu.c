@@ -267,22 +267,24 @@ void nes_Step(void)
 
 void nes_Start(char * filename)
 {
-	strcpy(romname,filename);
-	int romsize = emu_FileSize(filename);	
-	romdata = (char*)emu_Malloc(romsize);
-	if (romdata)
-	{
-		if (emu_FileOpen(filename)) {
-			if (emu_FileRead((char*)romdata, romsize) != romsize ) {
-			  	romdata = NULL;
-			}
-			emu_FileClose();
-		} else {
-			romdata = NULL;
-		}  
-	}
+  strcpy(romname,filename);
+  int romsize = emu_FileSize(filename); 
+  romdata = (char*)emu_Malloc(romsize);
+  if (romdata)
+  {
+    if (emu_FileOpen(filename)) {
+      if (emu_FileRead((char*)romdata, romsize) != romsize ) {
+          romdata = NULL;
+      }
+      emu_FileClose();
+    } else {
+      romdata = NULL;
+    }  
+  }
+  
+	//romdata = (char*)emu_LoadROM(filename);
 }
 
 void nes_End(void) {
-  emu_Free(romdata);
+
 }

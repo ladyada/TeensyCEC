@@ -1,4 +1,3 @@
-
 #include "AudioPlaySystem.h"
 #include <Arduino.h>
 
@@ -15,7 +14,7 @@ volatile bool playing = false;
 extern "C" {
   void SND_Process(void *sndbuffer, int sndn);
 }
-#endif
+
 
 static void snd_Mixer(short *  stream, int len )
 {
@@ -23,7 +22,7 @@ static void snd_Mixer(short *  stream, int len )
     SND_Process((void*)stream, len);     
   }
 }
-
+#endif
   
 void AudioPlaySystem::begin(void)
 {

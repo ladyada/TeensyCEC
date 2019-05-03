@@ -201,12 +201,12 @@ void * emu_Malloc(int size)
 {
   void * retval =  malloc(size);
   if (!retval) {
-    emu_printf("failed to allocate ");
-    emu_printf(size);
+    Serial.print("emu_Malloc: failed to allocate ");
+    Serial.print(size); Serial.println(" bytes");
   }
   else {
-    emu_printf("could allocate ");
-    emu_printf(size);    
+    Serial.print("emu_Malloc: successfully allocated ");
+    Serial.print(size); Serial.println(" bytes");  
   }
   
   return retval;
@@ -221,15 +221,22 @@ void emu_Free(void * pt)
 int emu_FileOpen(char * filename)
 {
   int retval = 0;
-  emu_printf("FileOpen...");
-  emu_printf(filename);
+  Serial.print("FileOpen: "); Serial.print(filename);
   
   if (file = arcada.open(filename, O_READ)) {
+    Serial.println("...Success!");
     retval = 1;  
   } else {
-    emu_printf("FileOpen failed");
+    Serial.println("...Failed!");
   }
   return (retval);
+}
+
+uint8_t *emu_LoadROM(const char *filename) {
+  Serial.print("LoadROM: "); Serial.print(filename);
+  uint8_t *romdata = arcada.writeFileToFlash(filename, DEFAULT_FLASH_ADDRESS);
+  Serial.printf(" into address $%08x", (uint32_t)&romdata); 
+  return romdata;
 }
 
 int emu_FileRead(char * buf, int size)

@@ -6,6 +6,8 @@
 #define CUSTOM_SND  1
 //#define TIMER_REND  1
 
+#define DEFAULT_FLASH_ADDRESS 0x2F000  // make sure this is after this programs memory
+
 #define emu_Init(ROM) {nes_Start(ROM); nes_Init(); }
 #define emu_Step(x) { nes_Step(); }
 
@@ -52,7 +54,7 @@ extern void emu_init(void);
 extern void emu_printf(const char *str);
 extern void * emu_Malloc(int size);
 extern void emu_Free(void * pt);
-
+extern uint8_t *emu_LoadROM(const char *filename);
 extern int emu_FileOpen(char * filename);
 extern int emu_FileRead(char * buf, int size);
 extern unsigned char emu_FileGetc(void);
